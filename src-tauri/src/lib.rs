@@ -252,9 +252,41 @@ fn delete_note(path: String, state: State<'_, AppState>) -> Result<NotesSnapshot
         return Err("Only Markdown note files can be deleted.".to_string());
     }
 
+    delete_note_attachments(&note_path)?;
     fs::remove_file(&note_path).map_err(|error| format!("Could not delete note: {error}"))?;
     state.refresh_index()?;
     state.snapshot()
+}
+
+fn delete_note_attachments(note_path: &Path) -> Result<(), String> {
+    let Some(note_dir) = note_path.parent() else {
+        return Ok(());
+    };
+    let attachments_dir = note_dir.join("attachments");
+    if !attachments_dir.is_dir() {
+        return Ok(());
+    }
+
+    for entry in fs::read_dir(&attachments_dir)
+        .map_err(|error| format!("Could not read attachments folder: {error}"))?
+    {
+        let entry = entry.map_err(|error| format!("Could not read attachment entry: {error}"))?;
+        let path = entry.path();
+        if path.is_file() && is_image_file(&path) {
+            fs::remove_file(&path).map_err(|error| {
+                format!("Could not delete attachment {}: {error}", path.display())
+            })?;
+        }
+    }
+
+    let mut remaining = fs::read_dir(&attachments_dir)
+        .map_err(|error| format!("Could not re-read attachments folder: {error}"))?;
+    if remaining.next().is_none() {
+        fs::remove_dir(&attachments_dir)
+            .map_err(|error| format!("Could not delete empty attachments folder: {error}"))?;
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -350,6 +382,30 @@ fn process_clipboard_image_paste(
         .map_err(|error| format!("Could not encode clipboard image: {error}"))?;
 
     save_pasted_image(note_path, png.into_inner(), Some("png".to_string()), state)
+}
+
+#[tauri::command]
+fn process_image_file_paste(
+    note_path: String,
+    image_path: String,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    let path = PathBuf::from(&image_path);
+    if !path.is_absolute() {
+        return Err("Pasted image file path must be absolute.".to_string());
+    }
+    if !path.is_file() {
+        return Err("Pasted image file does not exist.".to_string());
+    }
+
+    let extension = path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .map(|extension| extension.to_string());
+    let image_bytes =
+        fs::read(&path).map_err(|error| format!("Could not read pasted image file: {error}"))?;
+
+    save_pasted_image(note_path, image_bytes, extension, state)
 }
 
 fn save_pasted_image(
@@ -494,6 +550,18 @@ fn is_markdown_file(path: &Path) -> bool {
     path.extension()
         .and_then(|extension| extension.to_str())
         .map(|extension| matches!(extension.to_ascii_lowercase().as_str(), "md" | "markdown"))
+        .unwrap_or(false)
+}
+
+fn is_image_file(path: &Path) -> bool {
+    path.extension()
+        .and_then(|extension| extension.to_str())
+        .map(|extension| {
+            matches!(
+                extension.to_ascii_lowercase().as_str(),
+                "png" | "jpg" | "jpeg" | "gif" | "webp"
+            )
+        })
         .unwrap_or(false)
 }
 
@@ -642,6 +710,7 @@ pub fn run() {
             process_image_paste,
             process_image_paste_base64,
             process_clipboard_image_paste,
+            process_image_file_paste,
             resolve_note_asset
         ])
         .run(context)

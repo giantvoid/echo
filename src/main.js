@@ -423,12 +423,23 @@ function clipboardMightContainImage(clipboardData) {
   }
 
   const types = [...clipboardData.types];
+  if (types.length === 0) {
+    return true;
+  }
   if (types.some((type) => type.startsWith("image/"))) {
+    return true;
+  }
+  if (types.some((type) => type === "text/uri-list" || type === "x-special/gnome-copied-files")) {
     return true;
   }
 
   const html = clipboardData.getData("text/html");
-  return /<img\b/i.test(html);
+  if (/<img\b/i.test(html)) {
+    return true;
+  }
+
+  // Screenshot tools can expose image data only to the native clipboard API.
+  return !types.includes("text/plain") && !types.includes("text/html");
 }
 
 function findPastedImage(clipboardData) {
@@ -454,7 +465,12 @@ function findPastedImage(clipboardData) {
     return file;
   }
 
-  return imageFromHtml(clipboardData.getData("text/html"));
+  return (
+    imageFromHtml(clipboardData.getData("text/html")) ??
+    imageFileFromClipboardText(clipboardData.getData("text/uri-list")) ??
+    imageFileFromClipboardText(clipboardData.getData("x-special/gnome-copied-files")) ??
+    imageFileFromClipboardText(clipboardData.getData("text/plain"))
+  );
 }
 
 function imageFromHtml(html) {
@@ -477,6 +493,30 @@ function imageFromHtml(html) {
     base64: match[2],
     type: match[1],
   };
+}
+
+function imageFileFromClipboardText(text) {
+  if (!text) {
+    return null;
+  }
+
+  const uri = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => line.startsWith("file://"));
+  if (!uri) {
+    return null;
+  }
+
+  try {
+    const path = decodeURIComponent(new URL(uri).pathname);
+    if (!/\.(png|jpe?g|gif|webp)$/i.test(path)) {
+      return null;
+    }
+    return { path };
+  } catch {
+    return null;
+  }
 }
 
 async function fileToBase64(file) {
@@ -509,6 +549,13 @@ async function processPastedImage(imageSource, view) {
 }
 
 async function savePastedImageSource(imageSource) {
+  if ("path" in imageSource) {
+    return invoke("process_image_file_paste", {
+      notePath: appState.currentPath,
+      imagePath: imageSource.path,
+    });
+  }
+
   const imageBase64 =
     "base64" in imageSource ? imageSource.base64 : await fileToBase64(imageSource);
   const imageType = imageSource.type || "image/png";
