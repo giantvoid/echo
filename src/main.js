@@ -16,6 +16,8 @@ const resultsList = document.querySelector("#results-list");
 const workspace = document.querySelector(".workspace");
 const preview = document.querySelector("#preview");
 const statusBar = document.querySelector("#status-bar");
+const noteContextMenu = document.querySelector("#note-context-menu");
+const deleteNoteButton = document.querySelector("#delete-note");
 
 const rowHeight = 64;
 const resultSpacer = document.createElement("div");
@@ -33,6 +35,7 @@ const appState = {
   searchTimer: null,
   saveTimer: null,
   previewTimer: null,
+  contextMenuPath: null,
 };
 
 const editorTheme = EditorView.theme(
@@ -90,6 +93,41 @@ function setStatus(message, isError = false) {
 function debounce(key, delay, callback) {
   clearTimeout(appState[key]);
   appState[key] = setTimeout(callback, delay);
+}
+
+function togglePreview() {
+  const hidden = workspace.classList.toggle("preview-hidden");
+  previewToggle.setAttribute("aria-pressed", String(!hidden));
+}
+
+function todayDailyNotePath() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `daily/${year}-${month}-${day}`;
+}
+
+async function openTodayDailyNote() {
+  try {
+    const result = await createOrOpenNote(todayDailyNotePath());
+    setStatus(`${result.created ? "Created" : "Opened"} ${appState.currentPath}`);
+  } catch (error) {
+    setStatus(String(error), true);
+  }
+}
+
+function hideContextMenu() {
+  noteContextMenu.classList.add("hidden");
+  appState.contextMenuPath = null;
+}
+
+function showContextMenu(event, note) {
+  event.preventDefault();
+  appState.contextMenuPath = note.path;
+  noteContextMenu.style.left = `${event.clientX}px`;
+  noteContextMenu.style.top = `${event.clientY}px`;
+  noteContextMenu.classList.remove("hidden");
 }
 
 async function loadSnapshot() {
@@ -176,7 +214,11 @@ function renderVisibleRows() {
     `;
     row.querySelector(".result-title").textContent = note.path;
     row.querySelector(".result-snippet").textContent = note.snippet || "Empty note";
-    row.addEventListener("click", () => openNote(note.path));
+    row.addEventListener("click", () => {
+      hideContextMenu();
+      void openNote(note.path);
+    });
+    row.addEventListener("contextmenu", (event) => showContextMenu(event, note));
     rowsLayer.append(row);
   }
 }
@@ -212,6 +254,15 @@ async function createOrOpenFromSearch() {
   }
 
   try {
+    const result = await createOrOpenNote(query);
+    setStatus(`${result.created ? "Created" : "Opened"} ${appState.currentPath}`);
+  } catch (error) {
+    setStatus(String(error), true);
+  }
+}
+
+async function createOrOpenNote(query) {
+  try {
     const result = await invoke("create_or_open_note", { query });
     appState.currentPath = result.note.note.path;
     appState.loadingDocument = true;
@@ -226,7 +277,46 @@ async function createOrOpenFromSearch() {
     await loadSnapshot();
     await updatePreview();
     editor.focus();
-    setStatus(`${result.created ? "Created" : "Opened"} ${appState.currentPath}`);
+    return result;
+  } catch (error) {
+    appState.loadingDocument = false;
+    throw error;
+  }
+}
+
+async function deleteSelectedContextNote() {
+  const path = appState.contextMenuPath;
+  hideContextMenu();
+  if (!path) {
+    return;
+  }
+
+  if (!window.confirm(`Delete ${path}? This cannot be undone.`)) {
+    return;
+  }
+
+  try {
+    const snapshot = await invoke("delete_note", { path });
+    appState.root = snapshot.root;
+    appState.notes = snapshot.notes;
+    appState.results = snapshot.notes;
+
+    if (appState.currentPath === path) {
+      appState.currentPath = null;
+      appState.loadingDocument = true;
+      editor.dispatch({
+        changes: {
+          from: 0,
+          to: editor.state.doc.length,
+          insert: "",
+        },
+      });
+      appState.loadingDocument = false;
+      preview.innerHTML = "";
+    }
+
+    await runSearch(searchInput.value);
+    setStatus(`Deleted ${path}`);
   } catch (error) {
     appState.loadingDocument = false;
     setStatus(String(error), true);
@@ -335,16 +425,26 @@ searchInput.addEventListener("keydown", (event) => {
 });
 
 window.addEventListener("keydown", (event) => {
-  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "l") {
+  const isCommandShortcut = event.metaKey || event.ctrlKey;
+  const key = event.key.toLowerCase();
+
+  if (isCommandShortcut && key === "l") {
     event.preventDefault();
     searchInput.focus();
     searchInput.select();
+  } else if (isCommandShortcut && key === "p") {
+    event.preventDefault();
+    togglePreview();
+  } else if (isCommandShortcut && key === "d") {
+    event.preventDefault();
+    void openTodayDailyNote();
+  } else if (event.key === "Escape") {
+    hideContextMenu();
   }
 });
 
 previewToggle.addEventListener("click", () => {
-  const hidden = workspace.classList.toggle("preview-hidden");
-  previewToggle.setAttribute("aria-pressed", String(!hidden));
+  togglePreview();
 });
 
 chooseRootButton.addEventListener("click", () => {
@@ -352,6 +452,16 @@ chooseRootButton.addEventListener("click", () => {
 });
 
 resultsList.addEventListener("scroll", renderVisibleRows, { passive: true });
+resultsList.addEventListener("scroll", hideContextMenu, { passive: true });
+deleteNoteButton.addEventListener("click", () => {
+  void deleteSelectedContextNote();
+});
+window.addEventListener("click", (event) => {
+  if (!noteContextMenu.contains(event.target)) {
+    hideContextMenu();
+  }
+});
+window.addEventListener("blur", hideContextMenu);
 
 await listen("notes-changed", () => {
   void loadSnapshot();

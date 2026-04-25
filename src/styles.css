@@ -90,6 +90,7 @@ button:hover {
 .results-pane,
 .editor-pane,
 .preview-pane {
+  position: relative;
   min-width: 0;
   min-height: 0;
   border-right: 1px solid var(--border);
@@ -162,6 +163,31 @@ button:hover {
   font-size: 0.85rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.context-menu {
+  position: fixed;
+  z-index: 20;
+  min-width: 160px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-soft);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
+}
+
+.context-menu button {
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  padding: 0.65rem 0.8rem;
+  text-align: left;
+  background: transparent;
+}
+
+.context-menu button:hover {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
 }
 
 .editor-pane {

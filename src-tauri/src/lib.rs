@@ -121,12 +121,15 @@ impl AppState {
             .inner
             .lock()
             .map_err(|_| "App state lock was poisoned".to_string())?;
+        let mut notes = inner.notes.values().cloned().collect::<Vec<_>>();
+        sort_notes_by_modified(&mut notes);
+
         Ok(NotesSnapshot {
             root: inner
                 .root
                 .as_ref()
                 .map(|path| path.to_string_lossy().to_string()),
-            notes: inner.notes.values().cloned().collect(),
+            notes,
         })
     }
 
@@ -180,6 +183,8 @@ fn search_notes(query: String, state: State<'_, AppState>) -> Result<Vec<NoteMet
 fn search_notes_in_snapshot(query: &str, notes: Vec<NoteMetadata>) -> Vec<NoteMetadata> {
     let normalized_query = query.trim();
     if normalized_query.is_empty() {
+        let mut notes = notes;
+        sort_notes_by_modified(&mut notes);
         return notes;
     }
 
@@ -194,10 +199,20 @@ fn search_notes_in_snapshot(query: &str, notes: Vec<NoteMetadata>) -> Vec<NoteMe
     scored.sort_by(|(left_score, left_note), (right_score, right_note)| {
         right_score
             .cmp(left_score)
+            .then_with(|| right_note.modified.cmp(&left_note.modified))
             .then_with(|| left_note.path.cmp(&right_note.path))
     });
 
     scored.into_iter().map(|(_, note)| note).collect()
+}
+
+fn sort_notes_by_modified(notes: &mut [NoteMetadata]) {
+    notes.sort_by(|left, right| {
+        right
+            .modified
+            .cmp(&left.modified)
+            .then_with(|| left.path.cmp(&right.path))
+    });
 }
 
 #[tauri::command]
@@ -220,6 +235,23 @@ fn save_note(
     fs::write(&note_path, content).map_err(|error| format!("Could not save note: {error}"))?;
     state.refresh_index()?;
     metadata_for_file(&root, &note_path)
+}
+
+#[tauri::command]
+fn delete_note(path: String, state: State<'_, AppState>) -> Result<NotesSnapshot, String> {
+    let root = state.root()?;
+    let note_path = resolve_note_path(&root, &path)?;
+
+    if !note_path.exists() {
+        return Err("Note does not exist.".to_string());
+    }
+    if !note_path.is_file() || !is_markdown_file(&note_path) {
+        return Err("Only Markdown note files can be deleted.".to_string());
+    }
+
+    fs::remove_file(&note_path).map_err(|error| format!("Could not delete note: {error}"))?;
+    state.refresh_index()?;
+    state.snapshot()
 }
 
 #[tauri::command]
@@ -554,6 +586,7 @@ pub fn run() {
             search_notes,
             open_note,
             save_note,
+            delete_note,
             create_or_open_note,
             render_markdown,
             process_image_paste,
