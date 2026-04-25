@@ -77,8 +77,7 @@ const editor = new EditorView({
       }),
       EditorView.domEventHandlers({
         paste: (event, view) => {
-          void handlePaste(event, view);
-          return false;
+          return handlePaste(event, view);
         },
       }),
     ],
@@ -401,36 +400,123 @@ async function resolvePreviewImages() {
   );
 }
 
-async function handlePaste(event, view) {
-  if (!appState.currentPath || !event.clipboardData) {
-    return;
-  }
-
-  const imageItem = [...event.clipboardData.items].find((item) =>
-    item.type.startsWith("image/"),
-  );
-  if (!imageItem) {
-    return;
+function handlePaste(event, view) {
+  const imageSource = findPastedImage(event.clipboardData);
+  const mightBeImagePaste = clipboardMightContainImage(event.clipboardData);
+  if (!imageSource && !mightBeImagePaste) {
+    return false;
   }
 
   event.preventDefault();
-  const file = imageItem.getAsFile();
-  if (!file) {
-    return;
+  if (!appState.currentPath) {
+    setStatus("Open or create a note before pasting an image.", true);
+    return true;
   }
 
+  void processPastedImage(imageSource, view);
+  return true;
+}
+
+function clipboardMightContainImage(clipboardData) {
+  if (!clipboardData) {
+    return true;
+  }
+
+  const types = [...clipboardData.types];
+  if (types.some((type) => type.startsWith("image/"))) {
+    return true;
+  }
+
+  const html = clipboardData.getData("text/html");
+  return /<img\b/i.test(html);
+}
+
+function findPastedImage(clipboardData) {
+  if (!clipboardData) {
+    return null;
+  }
+
+  for (const clipboardItem of clipboardData.items) {
+    if (!clipboardItem.type.startsWith("image/")) {
+      continue;
+    }
+
+    const file = clipboardItem.getAsFile();
+    if (file) {
+      return file;
+    }
+  }
+
+  const file = [...clipboardData.files].find((pastedFile) =>
+    pastedFile.type.startsWith("image/"),
+  );
+  if (file) {
+    return file;
+  }
+
+  return imageFromHtml(clipboardData.getData("text/html"));
+}
+
+function imageFromHtml(html) {
+  if (!html) {
+    return null;
+  }
+
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const source = doc.querySelector("img")?.getAttribute("src");
+  if (!source?.startsWith("data:image/")) {
+    return null;
+  }
+
+  const match = source.match(/^data:(image\/[^;]+);base64,(.+)$/);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    base64: match[2],
+    type: match[1],
+  };
+}
+
+async function fileToBase64(file) {
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(reader.result));
+    reader.addEventListener("error", () => reject(reader.error));
+    reader.readAsDataURL(file);
+  });
+
+  const base64 = String(dataUrl).split(",", 2)[1];
+  if (!base64) {
+    throw new Error("Could not read pasted image data.");
+  }
+  return base64;
+}
+
+async function processPastedImage(imageSource, view) {
   try {
-    const bytes = [...new Uint8Array(await file.arrayBuffer())];
-    const markdownLink = await invoke("process_image_paste", {
-      notePath: appState.currentPath,
-      imageBytes: bytes,
-      extension: file.type.split("/")[1] || "png",
-    });
+    const markdownLink = imageSource
+      ? await savePastedImageSource(imageSource)
+      : await invoke("process_clipboard_image_paste", {
+          notePath: appState.currentPath,
+        });
     view.dispatch(view.state.replaceSelection(markdownLink));
     setStatus(`Attached image to ${appState.currentPath}`);
   } catch (error) {
     setStatus(String(error), true);
   }
+}
+
+async function savePastedImageSource(imageSource) {
+  const imageBase64 =
+    "base64" in imageSource ? imageSource.base64 : await fileToBase64(imageSource);
+  const imageType = imageSource.type || "image/png";
+  return invoke("process_image_paste_base64", {
+    notePath: appState.currentPath,
+    imageBase64,
+    extension: imageType.split("/")[1] || "png",
+  });
 }
 
 searchInput.addEventListener("input", () => {

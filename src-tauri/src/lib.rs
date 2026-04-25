@@ -1,4 +1,6 @@
+use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine};
 use chrono::Utc;
+use image::{DynamicImage, ImageFormat, RgbaImage};
 use notify::{
     event::{EventKind, ModifyKind},
     RecommendedWatcher, RecursiveMode, Watcher,
@@ -9,6 +11,7 @@ use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeMap,
     fs,
+    io::Cursor,
     path::{Component, Path, PathBuf},
     sync::{Arc, Mutex},
     time::UNIX_EPOCH,
@@ -308,6 +311,53 @@ fn process_image_paste(
     extension: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
+    save_pasted_image(note_path, image_bytes, extension, state)
+}
+
+#[tauri::command]
+fn process_image_paste_base64(
+    note_path: String,
+    image_base64: String,
+    extension: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    let image_bytes = BASE64_STANDARD
+        .decode(image_base64)
+        .map_err(|error| format!("Could not decode pasted image: {error}"))?;
+    save_pasted_image(note_path, image_bytes, extension, state)
+}
+
+#[tauri::command]
+fn process_clipboard_image_paste(
+    note_path: String,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    let mut clipboard = arboard::Clipboard::new()
+        .map_err(|error| format!("Could not access clipboard: {error}"))?;
+    let image = clipboard
+        .get_image()
+        .map_err(|error| format!("Clipboard does not contain an image: {error}"))?;
+    let rgba = RgbaImage::from_raw(
+        image.width as u32,
+        image.height as u32,
+        image.bytes.into_owned(),
+    )
+    .ok_or_else(|| "Clipboard image data was invalid.".to_string())?;
+
+    let mut png = Cursor::new(Vec::new());
+    DynamicImage::ImageRgba8(rgba)
+        .write_to(&mut png, ImageFormat::Png)
+        .map_err(|error| format!("Could not encode clipboard image: {error}"))?;
+
+    save_pasted_image(note_path, png.into_inner(), Some("png".to_string()), state)
+}
+
+fn save_pasted_image(
+    note_path: String,
+    image_bytes: Vec<u8>,
+    extension: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
     if image_bytes.is_empty() {
         return Err("Pasted image was empty.".to_string());
     }
@@ -590,6 +640,8 @@ pub fn run() {
             create_or_open_note,
             render_markdown,
             process_image_paste,
+            process_image_paste_base64,
+            process_clipboard_image_paste,
             resolve_note_asset
         ])
         .run(context)
