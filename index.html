@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PureType</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="top-bar">
+        <input
+          id="search-input"
+          type="search"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="Search or create a note..."
+          aria-label="Search or create a note"
+        />
+        <button id="preview-toggle" type="button" aria-pressed="true">Preview</button>
+      </header>
+
+      <main class="workspace">
+        <aside class="results-pane" aria-label="Search results">
+          <div id="root-banner" class="root-banner hidden">
+            <p>Select a folder to store your notes.</p>
+            <button id="choose-root" type="button">Choose Notes Folder</button>
+          </div>
+          <div id="results-list" class="results-list"></div>
+        </aside>
+
+        <section class="editor-pane" aria-label="Markdown editor">
+          <div id="editor"></div>
+        </section>
+
+        <aside id="preview-pane" class="preview-pane" aria-label="Markdown preview">
+          <div id="preview"></div>
+        </aside>
+      </main>
+
+      <footer id="status-bar" class="status-bar">No notes root selected</footer>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
