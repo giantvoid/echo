@@ -1,5 +1,8 @@
 use chrono::Utc;
-use notify::{RecommendedWatcher, RecursiveMode, Watcher};
+use notify::{
+    event::{EventKind, ModifyKind},
+    RecommendedWatcher, RecursiveMode, Watcher,
+};
 use pulldown_cmark::{html, Options, Parser};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -71,7 +74,7 @@ impl AppState {
         let app_for_watcher = app.clone();
         let mut watcher =
             notify::recommended_watcher(move |event: notify::Result<notify::Event>| {
-                if event.is_ok() {
+                if event.as_ref().is_ok_and(should_refresh_for_event) {
                     let _ = state_for_watcher.refresh_index();
                     let _ = app_for_watcher.emit("notes-changed", ());
                 }
@@ -114,7 +117,6 @@ impl AppState {
     }
 
     fn snapshot(&self) -> Result<NotesSnapshot, String> {
-        self.refresh_index()?;
         let inner = self
             .inner
             .lock()
@@ -138,6 +140,16 @@ impl AppState {
             .clone()
             .ok_or_else(|| "Choose a notes root before working with notes.".to_string())
     }
+}
+
+fn should_refresh_for_event(event: &notify::Event) -> bool {
+    matches!(
+        event.kind,
+        EventKind::Create(_)
+            | EventKind::Remove(_)
+            | EventKind::Modify(ModifyKind::Data(_))
+            | EventKind::Modify(ModifyKind::Name(_))
+    )
 }
 
 #[tauri::command]
