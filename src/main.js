@@ -109,8 +109,13 @@ function todayDailyNotePath() {
 }
 
 async function openTodayDailyNote() {
+  const dailyPath = todayDailyNotePath();
+  searchInput.value = dailyPath;
+
   try {
-    const result = await createOrOpenNote(todayDailyNotePath());
+    const result = await createOrOpenNote(dailyPath);
+    await runSearch(dailyPath);
+    scrollCurrentResultIntoView();
     setStatus(`${result.created ? "Created" : "Opened"} ${appState.currentPath}`);
   } catch (error) {
     setStatus(String(error), true);
@@ -189,6 +194,23 @@ async function runSearch(query) {
 function renderResults() {
   resultSpacer.style.height = `${appState.results.length * rowHeight}px`;
   renderVisibleRows();
+}
+
+function scrollCurrentResultIntoView() {
+  const selectedIndex = appState.results.findIndex((note) => note.path === appState.currentPath);
+  if (selectedIndex === -1) {
+    return;
+  }
+
+  const rowTop = selectedIndex * rowHeight;
+  const rowBottom = rowTop + rowHeight;
+  const viewportTop = resultsList.scrollTop;
+  const viewportBottom = viewportTop + resultsList.clientHeight;
+
+  if (rowTop < viewportTop || rowBottom > viewportBottom) {
+    resultsList.scrollTop = Math.max(0, rowTop - rowHeight);
+    renderVisibleRows();
+  }
 }
 
 function renderVisibleRows() {
