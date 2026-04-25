@@ -189,6 +189,19 @@ button:hover {
   outline: none !important;
 }
 
+.cm-cursor {
+  border-left-color: var(--accent) !important;
+}
+
+.cm-selectionBackground,
+.cm-focused .cm-selectionBackground {
+  background: color-mix(in srgb, var(--accent-strong) 35%, transparent) !important;
+}
+
+.cm-activeLine {
+  background: color-mix(in srgb, var(--panel-soft) 55%, transparent);
+}
+
 .cm-gutters {
   background: var(--panel);
   border-right: 1px solid var(--border);

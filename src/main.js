@@ -35,6 +35,25 @@ const appState = {
   previewTimer: null,
 };
 
+const editorTheme = EditorView.theme(
+  {
+    ".cm-content": {
+      caretColor: "var(--accent)",
+    },
+    "&.cm-focused .cm-cursor": {
+      borderLeftColor: "var(--accent)",
+      borderLeftWidth: "2px",
+    },
+    "&.cm-focused .cm-selectionBackground, .cm-selectionBackground": {
+      backgroundColor: "color-mix(in srgb, var(--accent-strong) 35%, transparent)",
+    },
+    ".cm-activeLine": {
+      backgroundColor: "color-mix(in srgb, var(--panel-soft) 55%, transparent)",
+    },
+  },
+  { dark: true },
+);
+
 const editor = new EditorView({
   parent: document.querySelector("#editor"),
   state: EditorState.create({
@@ -45,6 +64,7 @@ const editor = new EditorView({
       markdown(),
       keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
       EditorView.lineWrapping,
+      editorTheme,
       EditorView.updateListener.of((update) => {
         if (!update.docChanged || appState.loadingDocument) {
           return;
