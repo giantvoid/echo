@@ -683,9 +683,6 @@ fn save_config(config: &AppConfig) -> Result<(), String> {
 }
 
 pub fn run() {
-    let mut context = tauri::generate_context!();
-    context.set_default_window_icon(None);
-
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState::default())
@@ -713,6 +710,6 @@ pub fn run() {
             process_image_file_paste,
             resolve_note_asset
         ])
-        .run(context)
+        .run(tauri::generate_context!())
         .expect("error while running PureType");
 }
