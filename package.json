@@ -7,7 +7,8 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "install:linux-desktop": "bash scripts/install-linux-desktop-entry.sh"
   },
   "dependencies": {
     "@codemirror/commands": "^6.8.1",
