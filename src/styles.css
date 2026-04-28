@@ -211,6 +211,10 @@ button:hover {
   background: var(--bg);
 }
 
+.empty-state[hidden] {
+  display: none;
+}
+
 #editor,
 .cm-editor {
   height: 100%;

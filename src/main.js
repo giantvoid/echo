@@ -347,6 +347,9 @@ async function createOrOpenNote(query) {
     const result = await invoke("create_or_open_note", { query });
     appState.currentPath = result.note.note.path;
     setEditorContent(result.note.content);
+    if (result.created) {
+      appState.viewMode = "edit";
+    }
     await loadSnapshot();
     if (appState.viewMode === "preview") {
       await updatePreview();
