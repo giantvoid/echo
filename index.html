@@ -7,20 +7,18 @@
   </head>
   <body>
     <div id="app">
-      <header class="top-bar">
-        <input
-          id="search-input"
-          type="search"
-          autocomplete="off"
-          spellcheck="false"
-          placeholder="Search or create a note..."
-          aria-label="Search or create a note"
-        />
-        <button id="preview-toggle" type="button" aria-pressed="true">Preview</button>
-      </header>
-
       <main class="workspace edit-mode no-note-selected">
         <aside class="results-pane" aria-label="Search results">
+          <div class="search-pane">
+            <input
+              id="search-input"
+              type="search"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Search or create a note..."
+              aria-label="Search or create a note"
+            />
+          </div>
           <div id="root-banner" class="root-banner hidden">
             <p>Select a folder to store your notes.</p>
             <button id="choose-root" type="button">Choose Notes Folder</button>

@@ -41,11 +41,7 @@ input {
   font: inherit;
 }
 
-.top-bar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.75rem;
-  height: 4.25rem;
+.search-pane {
   padding: 0.75rem;
   border-bottom: 1px solid var(--border);
   background: var(--panel);
@@ -82,7 +78,7 @@ button:hover {
 .workspace {
   display: grid;
   grid-template-columns: minmax(220px, 25vw) minmax(360px, 1fr);
-  height: calc(100% - 6.4rem);
+  height: calc(100% - 2.15rem);
   min-height: 0;
 }
 
@@ -93,6 +89,11 @@ button:hover {
   min-height: 0;
   border-right: 1px solid var(--border);
   background: var(--panel);
+}
+
+.results-pane {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
 }
 
 .content-pane {
@@ -120,6 +121,7 @@ button:hover {
 .results-list {
   position: relative;
   height: 100%;
+  min-height: 0;
   overflow: auto;
 }
 
@@ -146,7 +148,7 @@ button:hover {
 .result-title {
   overflow: hidden;
   color: var(--text);
-  font-weight: 650;
+  font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

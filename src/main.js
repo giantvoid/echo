@@ -9,7 +9,6 @@ import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 
 const searchInput = document.querySelector("#search-input");
-const previewToggle = document.querySelector("#preview-toggle");
 const chooseRootButton = document.querySelector("#choose-root");
 const rootBanner = document.querySelector("#root-banner");
 const resultsList = document.querySelector("#results-list");
@@ -127,9 +126,6 @@ function updateWorkspaceState() {
   workspace.classList.toggle("no-note-selected", !hasSelectedNote);
   workspace.classList.toggle("edit-mode", hasSelectedNote && appState.viewMode === "edit");
   workspace.classList.toggle("preview-mode", hasSelectedNote && appState.viewMode === "preview");
-  previewToggle.textContent = appState.viewMode === "preview" ? "Edit" : "Preview";
-  previewToggle.setAttribute("aria-pressed", String(appState.viewMode === "preview"));
-  previewToggle.disabled = !hasSelectedNote;
   emptyState.hidden = hasSelectedNote;
 }
 
@@ -801,10 +797,6 @@ window.addEventListener("keydown", (event) => {
     hideImageOverlay();
     hideAllContextMenus();
   }
-});
-
-previewToggle.addEventListener("click", () => {
-  void togglePreviewMode();
 });
 
 chooseRootButton.addEventListener("click", () => {
