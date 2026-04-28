@@ -9,6 +9,7 @@ use pulldown_cmark::{html, Options, Parser};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
+    borrow::Cow,
     collections::BTreeMap,
     fs,
     io::Cursor,
@@ -50,10 +51,19 @@ struct CreateOrOpenResult {
     note: OpenNote,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RenameNoteResult {
+    old_path: String,
+    new_path: String,
+    snapshot: NotesSnapshot,
+}
+
 #[derive(Debug, Deserialize, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 struct AppConfig {
     notes_root: Option<String>,
+    ui_scale: Option<i32>,
 }
 
 #[derive(Default)]
@@ -171,10 +181,23 @@ fn set_notes_root(
 ) -> Result<NotesSnapshot, String> {
     let root = PathBuf::from(path);
     state.configure_root(root.clone(), &app)?;
-    save_config(&AppConfig {
-        notes_root: Some(root.to_string_lossy().to_string()),
-    })?;
+    let mut config = load_config();
+    config.notes_root = Some(root.to_string_lossy().to_string());
+    save_config(&config)?;
     state.snapshot()
+}
+
+#[tauri::command]
+fn get_app_config() -> AppConfig {
+    load_config()
+}
+
+#[tauri::command]
+fn save_ui_scale(ui_scale: i32) -> Result<AppConfig, String> {
+    let mut config = load_config();
+    config.ui_scale = Some(ui_scale);
+    save_config(&config)?;
+    Ok(config)
 }
 
 #[tauri::command]
@@ -256,6 +279,61 @@ fn delete_note(path: String, state: State<'_, AppState>) -> Result<NotesSnapshot
     fs::remove_file(&note_path).map_err(|error| format!("Could not delete note: {error}"))?;
     state.refresh_index()?;
     state.snapshot()
+}
+
+#[tauri::command]
+fn rename_note(
+    path: String,
+    new_filename: String,
+    state: State<'_, AppState>,
+) -> Result<RenameNoteResult, String> {
+    let root = state.root()?;
+    let note_path = resolve_note_path(&root, &path)?;
+
+    if !note_path.exists() {
+        return Err("Note does not exist.".to_string());
+    }
+    if !note_path.is_file() || !is_markdown_file(&note_path) {
+        return Err("Only Markdown note files can be renamed.".to_string());
+    }
+
+    let filename = normalize_note_filename_stem(&new_filename)?;
+    let extension = note_path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .unwrap_or("md");
+    let new_file_name = format!("{filename}.{extension}");
+    let new_note_path = note_path
+        .parent()
+        .ok_or_else(|| "Could not determine note folder.".to_string())?
+        .join(new_file_name);
+
+    if new_note_path == note_path {
+        let snapshot = state.snapshot()?;
+        return Ok(RenameNoteResult {
+            old_path: path.clone(),
+            new_path: path,
+            snapshot,
+        });
+    }
+    if new_note_path.exists() {
+        return Err("A note with that name already exists.".to_string());
+    }
+    if !new_note_path.starts_with(&root) {
+        return Err("Renamed note path escapes the notes root.".to_string());
+    }
+
+    fs::rename(&note_path, &new_note_path)
+        .map_err(|error| format!("Could not rename note: {error}"))?;
+    state.refresh_index()?;
+    let new_path = relative_note_path(&root, &new_note_path)?;
+    let snapshot = state.snapshot()?;
+
+    Ok(RenameNoteResult {
+        old_path: path,
+        new_path,
+        snapshot,
+    })
 }
 
 fn delete_note_attachments(note_path: &Path) -> Result<(), String> {
@@ -408,6 +486,45 @@ fn process_image_file_paste(
     save_pasted_image(note_path, image_bytes, extension, state)
 }
 
+#[tauri::command]
+fn copy_image_to_clipboard(
+    note_path: String,
+    asset_path: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let root = state.root()?;
+    let absolute_note_path = resolve_note_path(&root, &note_path)?;
+    let note_dir = absolute_note_path
+        .parent()
+        .ok_or_else(|| "Could not determine note folder.".to_string())?;
+    let asset = normalize_relative_path(&asset_path)?;
+    let absolute_asset = note_dir.join(asset);
+
+    if !absolute_asset.starts_with(&root) {
+        return Err("Asset path escapes the notes root.".to_string());
+    }
+    if !absolute_asset.is_file() || !is_image_file(&absolute_asset) {
+        return Err("Only local image files can be copied.".to_string());
+    }
+
+    let image_bytes =
+        fs::read(&absolute_asset).map_err(|error| format!("Could not read image: {error}"))?;
+    let image = image::load_from_memory(&image_bytes)
+        .map_err(|error| format!("Could not decode image: {error}"))?
+        .to_rgba8();
+    let width = image.width() as usize;
+    let height = image.height() as usize;
+    let mut clipboard = arboard::Clipboard::new()
+        .map_err(|error| format!("Could not access clipboard: {error}"))?;
+    clipboard
+        .set_image(arboard::ImageData {
+            width,
+            height,
+            bytes: Cow::Owned(image.into_raw()),
+        })
+        .map_err(|error| format!("Could not copy image: {error}"))
+}
+
 fn save_pasted_image(
     note_path: String,
     image_bytes: Vec<u8>,
@@ -512,10 +629,7 @@ fn scan_notes(root: &Path) -> Result<BTreeMap<String, NoteMetadata>, String> {
 }
 
 fn metadata_for_file(root: &Path, path: &Path) -> Result<NoteMetadata, String> {
-    let relative = path
-        .strip_prefix(root)
-        .map_err(|_| "Note path is outside the notes root.".to_string())?;
-    let relative_path = relative.to_string_lossy().replace('\\', "/");
+    let relative_path = relative_note_path(root, path)?;
     let title = path
         .file_stem()
         .map(|stem| stem.to_string_lossy().to_string())
@@ -544,6 +658,13 @@ fn metadata_for_file(root: &Path, path: &Path) -> Result<NoteMetadata, String> {
         modified,
         size: file_metadata.len(),
     })
+}
+
+fn relative_note_path(root: &Path, path: &Path) -> Result<String, String> {
+    let relative = path
+        .strip_prefix(root)
+        .map_err(|_| "Note path is outside the notes root.".to_string())?;
+    Ok(relative.to_string_lossy().replace('\\', "/"))
 }
 
 fn is_markdown_file(path: &Path) -> bool {
@@ -616,6 +737,25 @@ fn normalize_relative_path(relative_path: &str) -> Result<String, String> {
     }
 
     Ok(parts.join("/"))
+}
+
+fn normalize_note_filename_stem(filename: &str) -> Result<String, String> {
+    let filename = filename.trim();
+    if filename.is_empty() {
+        return Err("Note name cannot be empty.".to_string());
+    }
+    if filename == "." || filename == ".." {
+        return Err("Note name is not valid.".to_string());
+    }
+    if filename.contains('/') || filename.contains('\\') {
+        return Err("Only the note filename can be changed.".to_string());
+    }
+    let lowercase = filename.to_ascii_lowercase();
+    if lowercase.ends_with(".md") || lowercase.ends_with(".markdown") {
+        return Err("Do not include the file extension.".to_string());
+    }
+
+    Ok(filename.to_string())
 }
 
 fn normalize_extension(extension: Option<&str>) -> String {
@@ -698,16 +838,20 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_notes,
             set_notes_root,
+            get_app_config,
+            save_ui_scale,
             search_notes,
             open_note,
             save_note,
             delete_note,
+            rename_note,
             create_or_open_note,
             render_markdown,
             process_image_paste,
             process_image_paste_base64,
             process_clipboard_image_paste,
             process_image_file_paste,
+            copy_image_to_clipboard,
             resolve_note_asset
         ])
         .run(tauri::generate_context!())

@@ -14,12 +14,24 @@ const chooseRootButton = document.querySelector("#choose-root");
 const rootBanner = document.querySelector("#root-banner");
 const resultsList = document.querySelector("#results-list");
 const workspace = document.querySelector(".workspace");
+const emptyState = document.querySelector("#empty-state");
 const preview = document.querySelector("#preview");
 const statusBar = document.querySelector("#status-bar");
 const noteContextMenu = document.querySelector("#note-context-menu");
+const renameNoteButton = document.querySelector("#rename-note");
 const deleteNoteButton = document.querySelector("#delete-note");
+const renameDialog = document.querySelector("#rename-dialog");
+const renameForm = document.querySelector("#rename-form");
+const renameInput = document.querySelector("#rename-input");
+const cancelRenameButton = document.querySelector("#cancel-rename");
+const imageOverlay = document.querySelector("#image-overlay");
+const zoomedImage = document.querySelector("#zoomed-image");
+const imageContextMenu = document.querySelector("#image-context-menu");
+const copyImageButton = document.querySelector("#copy-image");
 
-const rowHeight = 64;
+let rowHeight = 42;
+const minUiScale = -4;
+const maxUiScale = 8;
 const resultSpacer = document.createElement("div");
 const rowsLayer = document.createElement("div");
 rowsLayer.style.position = "absolute";
@@ -36,6 +48,10 @@ const appState = {
   saveTimer: null,
   previewTimer: null,
   contextMenuPath: null,
+  renamePath: null,
+  viewMode: "edit",
+  imageContextAssetPath: null,
+  uiScale: 0,
 };
 
 const editorTheme = EditorView.theme(
@@ -94,9 +110,47 @@ function debounce(key, delay, callback) {
   appState[key] = setTimeout(callback, delay);
 }
 
-function togglePreview() {
-  const hidden = workspace.classList.toggle("preview-hidden");
-  previewToggle.setAttribute("aria-pressed", String(!hidden));
+async function togglePreviewMode() {
+  if (!appState.currentPath) {
+    return;
+  }
+
+  appState.viewMode = appState.viewMode === "preview" ? "edit" : "preview";
+  if (appState.viewMode === "preview") {
+    await updatePreview();
+  }
+  updateWorkspaceState();
+}
+
+function updateWorkspaceState() {
+  const hasSelectedNote = Boolean(appState.currentPath);
+  workspace.classList.toggle("no-note-selected", !hasSelectedNote);
+  workspace.classList.toggle("edit-mode", hasSelectedNote && appState.viewMode === "edit");
+  workspace.classList.toggle("preview-mode", hasSelectedNote && appState.viewMode === "preview");
+  previewToggle.textContent = appState.viewMode === "preview" ? "Edit" : "Preview";
+  previewToggle.setAttribute("aria-pressed", String(appState.viewMode === "preview"));
+  previewToggle.disabled = !hasSelectedNote;
+  emptyState.hidden = hasSelectedNote;
+}
+
+function setEditorContent(content) {
+  appState.loadingDocument = true;
+  editor.dispatch({
+    changes: {
+      from: 0,
+      to: editor.state.doc.length,
+      insert: content,
+    },
+  });
+  appState.loadingDocument = false;
+}
+
+function clearCurrentNote() {
+  appState.currentPath = null;
+  appState.viewMode = "edit";
+  setEditorContent("");
+  preview.innerHTML = "";
+  updateWorkspaceState();
 }
 
 function todayDailyNotePath() {
@@ -126,8 +180,19 @@ function hideContextMenu() {
   appState.contextMenuPath = null;
 }
 
+function hideImageContextMenu() {
+  imageContextMenu.classList.add("hidden");
+  appState.imageContextAssetPath = null;
+}
+
+function hideAllContextMenus() {
+  hideContextMenu();
+  hideImageContextMenu();
+}
+
 function showContextMenu(event, note) {
   event.preventDefault();
+  hideImageContextMenu();
   appState.contextMenuPath = note.path;
   noteContextMenu.style.left = `${event.clientX}px`;
   noteContextMenu.style.top = `${event.clientY}px`;
@@ -231,12 +296,10 @@ function renderVisibleRows() {
     row.classList.toggle("selected", note.path === appState.currentPath);
     row.innerHTML = `
       <span class="result-title"></span>
-      <span class="result-snippet"></span>
     `;
-    row.querySelector(".result-title").textContent = note.path;
-    row.querySelector(".result-snippet").textContent = note.snippet || "Empty note";
+    row.querySelector(".result-title").textContent = note.title || filenameFromPath(note.path);
     row.addEventListener("click", () => {
-      hideContextMenu();
+      hideAllContextMenus();
       void openNote(note.path);
     });
     row.addEventListener("contextmenu", (event) => showContextMenu(event, note));
@@ -248,19 +311,16 @@ async function openNote(path) {
   try {
     const opened = await invoke("open_note", { path });
     appState.currentPath = opened.note.path;
-    appState.loadingDocument = true;
-    editor.dispatch({
-      changes: {
-        from: 0,
-        to: editor.state.doc.length,
-        insert: opened.content,
-      },
-    });
-    appState.loadingDocument = false;
+    setEditorContent(opened.content);
     searchInput.value = opened.note.path.replace(/\.md$/i, "");
     renderResults();
-    await updatePreview();
-    editor.focus();
+    if (appState.viewMode === "preview") {
+      await updatePreview();
+    }
+    updateWorkspaceState();
+    if (appState.viewMode === "edit") {
+      editor.focus();
+    }
     setStatus(`Opened ${opened.note.path}`);
   } catch (error) {
     appState.loadingDocument = false;
@@ -286,17 +346,12 @@ async function createOrOpenNote(query) {
   try {
     const result = await invoke("create_or_open_note", { query });
     appState.currentPath = result.note.note.path;
-    appState.loadingDocument = true;
-    editor.dispatch({
-      changes: {
-        from: 0,
-        to: editor.state.doc.length,
-        insert: result.note.content,
-      },
-    });
-    appState.loadingDocument = false;
+    setEditorContent(result.note.content);
     await loadSnapshot();
-    await updatePreview();
+    if (appState.viewMode === "preview") {
+      await updatePreview();
+    }
+    updateWorkspaceState();
     editor.focus();
     return result;
   } catch (error) {
@@ -307,7 +362,7 @@ async function createOrOpenNote(query) {
 
 async function deleteSelectedContextNote() {
   const path = appState.contextMenuPath;
-  hideContextMenu();
+  hideAllContextMenus();
   if (!path) {
     return;
   }
@@ -323,23 +378,64 @@ async function deleteSelectedContextNote() {
     appState.results = snapshot.notes;
 
     if (appState.currentPath === path) {
-      appState.currentPath = null;
-      appState.loadingDocument = true;
-      editor.dispatch({
-        changes: {
-          from: 0,
-          to: editor.state.doc.length,
-          insert: "",
-        },
-      });
-      appState.loadingDocument = false;
-      preview.innerHTML = "";
+      searchInput.value = "";
+      clearCurrentNote();
     }
 
     await runSearch(searchInput.value);
     setStatus(`Deleted ${path}`);
   } catch (error) {
     appState.loadingDocument = false;
+    setStatus(String(error), true);
+  }
+}
+
+function filenameFromPath(path) {
+  return path.split("/").pop()?.replace(/\.[^.]+$/u, "") || path;
+}
+
+function showRenameDialog() {
+  const path = appState.contextMenuPath;
+  hideAllContextMenus();
+  if (!path) {
+    return;
+  }
+
+  appState.renamePath = path;
+  renameInput.value = filenameFromPath(path);
+  renameDialog.showModal();
+  renameInput.focus();
+  renameInput.select();
+}
+
+function closeRenameDialog() {
+  appState.renamePath = null;
+  renameDialog.close();
+}
+
+async function renameSelectedNote() {
+  const path = appState.renamePath;
+  const newFilename = renameInput.value.trim();
+  if (!path || !newFilename) {
+    return;
+  }
+
+  try {
+    const result = await invoke("rename_note", {
+      path,
+      newFilename,
+    });
+    appState.root = result.snapshot.root;
+    appState.notes = result.snapshot.notes;
+    if (appState.currentPath === result.oldPath) {
+      appState.currentPath = result.newPath;
+      searchInput.value = result.newPath.replace(/\.[^.]+$/u, "");
+    }
+    closeRenameDialog();
+    await runSearch(searchInput.value);
+    scrollCurrentResultIntoView();
+    setStatus(`Renamed ${result.oldPath} to ${result.newPath}`);
+  } catch (error) {
     setStatus(String(error), true);
   }
 }
@@ -362,6 +458,9 @@ function scheduleSave() {
 }
 
 function schedulePreview() {
+  if (appState.viewMode !== "preview") {
+    return;
+  }
   debounce("previewTimer", 75, () => {
     void updatePreview();
   });
@@ -373,6 +472,7 @@ async function updatePreview() {
   });
   preview.innerHTML = html;
   await resolvePreviewImages();
+  wirePreviewImages();
 }
 
 async function resolvePreviewImages() {
@@ -392,12 +492,74 @@ async function resolvePreviewImages() {
           notePath: appState.currentPath,
           assetPath: source,
         });
+        image.dataset.assetPath = source;
+        image.dataset.absolutePath = absolutePath;
         image.src = convertFileSrc(absolutePath);
       } catch (error) {
         image.alt = `${image.alt || "Image"} (${error})`;
       }
     }),
   );
+}
+
+function wirePreviewImages() {
+  for (const image of preview.querySelectorAll("img")) {
+    image.addEventListener("click", () => {
+      showImageOverlay(image.src, image.dataset.assetPath || "");
+    });
+    image.addEventListener("contextmenu", (event) => {
+      const assetPath = image.dataset.assetPath;
+      if (!assetPath) {
+        return;
+      }
+      event.preventDefault();
+      showImageContextMenu(event, assetPath);
+    });
+  }
+}
+
+function showImageOverlay(source, assetPath) {
+  if (!source) {
+    return;
+  }
+  zoomedImage.src = source;
+  zoomedImage.dataset.assetPath = assetPath;
+  imageOverlay.classList.remove("hidden");
+  imageOverlay.setAttribute("aria-hidden", "false");
+}
+
+function hideImageOverlay() {
+  imageOverlay.classList.add("hidden");
+  imageOverlay.setAttribute("aria-hidden", "true");
+  zoomedImage.removeAttribute("src");
+  zoomedImage.dataset.assetPath = "";
+  hideImageContextMenu();
+}
+
+function showImageContextMenu(event, assetPath) {
+  hideContextMenu();
+  appState.imageContextAssetPath = assetPath;
+  imageContextMenu.style.left = `${event.clientX}px`;
+  imageContextMenu.style.top = `${event.clientY}px`;
+  imageContextMenu.classList.remove("hidden");
+}
+
+async function copyContextImage() {
+  const assetPath = appState.imageContextAssetPath;
+  hideImageContextMenu();
+  if (!assetPath || !appState.currentPath) {
+    return;
+  }
+
+  try {
+    await invoke("copy_image_to_clipboard", {
+      notePath: appState.currentPath,
+      assetPath,
+    });
+    setStatus("Copied image to clipboard");
+  } catch (error) {
+    setStatus(String(error), true);
+  }
 }
 
 function handlePaste(event, view) {
@@ -566,6 +728,39 @@ async function savePastedImageSource(imageSource) {
   });
 }
 
+function applyUiScale(uiScale) {
+  appState.uiScale = Math.min(maxUiScale, Math.max(minUiScale, uiScale));
+  rowHeight = Math.max(32, 42 + appState.uiScale);
+  document.documentElement.style.setProperty("--app-font-size", `${15 + appState.uiScale}px`);
+  document.documentElement.style.setProperty("--editor-font-size", `${14.7 + appState.uiScale}px`);
+  document.documentElement.style.setProperty("--result-row-height", `${rowHeight}px`);
+  renderResults();
+}
+
+async function loadUiScale() {
+  try {
+    const config = await invoke("get_app_config");
+    applyUiScale(config.uiScale ?? 0);
+  } catch (error) {
+    setStatus(String(error), true);
+  }
+}
+
+async function changeUiScale(delta) {
+  const nextScale = Math.min(maxUiScale, Math.max(minUiScale, appState.uiScale + delta));
+  if (nextScale === appState.uiScale) {
+    return;
+  }
+
+  applyUiScale(nextScale);
+  try {
+    await invoke("save_ui_scale", { uiScale: nextScale });
+    setStatus(`UI size ${nextScale >= 0 ? "+" : ""}${nextScale}`);
+  } catch (error) {
+    setStatus(String(error), true);
+  }
+}
+
 searchInput.addEventListener("input", () => {
   debounce("searchTimer", 15, () => {
     void runSearch(searchInput.value);
@@ -587,19 +782,26 @@ window.addEventListener("keydown", (event) => {
     event.preventDefault();
     searchInput.focus();
     searchInput.select();
-  } else if (isCommandShortcut && key === "p") {
+  } else if (isCommandShortcut && key === "e") {
     event.preventDefault();
-    togglePreview();
+    void togglePreviewMode();
   } else if (isCommandShortcut && key === "d") {
     event.preventDefault();
     void openTodayDailyNote();
+  } else if (isCommandShortcut && (event.key === "+" || event.key === "=")) {
+    event.preventDefault();
+    void changeUiScale(1);
+  } else if (isCommandShortcut && event.key === "-") {
+    event.preventDefault();
+    void changeUiScale(-1);
   } else if (event.key === "Escape") {
-    hideContextMenu();
+    hideImageOverlay();
+    hideAllContextMenus();
   }
 });
 
 previewToggle.addEventListener("click", () => {
-  togglePreview();
+  void togglePreviewMode();
 });
 
 chooseRootButton.addEventListener("click", () => {
@@ -607,20 +809,48 @@ chooseRootButton.addEventListener("click", () => {
 });
 
 resultsList.addEventListener("scroll", renderVisibleRows, { passive: true });
-resultsList.addEventListener("scroll", hideContextMenu, { passive: true });
+resultsList.addEventListener("scroll", hideAllContextMenus, { passive: true });
 deleteNoteButton.addEventListener("click", () => {
   void deleteSelectedContextNote();
 });
-window.addEventListener("click", (event) => {
-  if (!noteContextMenu.contains(event.target)) {
-    hideContextMenu();
+renameNoteButton.addEventListener("click", showRenameDialog);
+renameForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  void renameSelectedNote();
+});
+cancelRenameButton.addEventListener("click", closeRenameDialog);
+renameDialog.addEventListener("close", () => {
+  appState.renamePath = null;
+});
+copyImageButton.addEventListener("click", () => {
+  void copyContextImage();
+});
+imageOverlay.addEventListener("click", (event) => {
+  if (event.button === 0) {
+    hideImageOverlay();
   }
 });
-window.addEventListener("blur", hideContextMenu);
+zoomedImage.addEventListener("contextmenu", (event) => {
+  const assetPath = zoomedImage.dataset.assetPath;
+  if (!assetPath) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  showImageContextMenu(event, assetPath);
+});
+window.addEventListener("click", (event) => {
+  if (!noteContextMenu.contains(event.target) && !imageContextMenu.contains(event.target)) {
+    hideAllContextMenus();
+  }
+});
+window.addEventListener("blur", hideAllContextMenus);
 
 await listen("notes-changed", () => {
   void loadSnapshot();
 });
 
+await loadUiScale();
 await loadSnapshot();
+updateWorkspaceState();
 searchInput.focus();

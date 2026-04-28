@@ -19,7 +19,7 @@
         <button id="preview-toggle" type="button" aria-pressed="true">Preview</button>
       </header>
 
-      <main class="workspace">
+      <main class="workspace edit-mode no-note-selected">
         <aside class="results-pane" aria-label="Search results">
           <div id="root-banner" class="root-banner hidden">
             <p>Select a folder to store your notes.</p>
@@ -27,20 +27,49 @@
           </div>
           <div id="results-list" class="results-list"></div>
           <div id="note-context-menu" class="context-menu hidden" role="menu">
+            <button id="rename-note" type="button" role="menuitem">Rename Note</button>
             <button id="delete-note" type="button" role="menuitem">Delete Note</button>
           </div>
         </aside>
 
-        <section class="editor-pane" aria-label="Markdown editor">
-          <div id="editor"></div>
+        <section class="content-pane" aria-label="Note content">
+          <div id="empty-state" class="empty-state">Create or select note to start editing</div>
+          <div class="editor-pane" aria-label="Markdown editor">
+            <div id="editor"></div>
+          </div>
+          <div id="preview-pane" class="preview-pane" aria-label="Markdown preview">
+            <div id="preview"></div>
+          </div>
         </section>
-
-        <aside id="preview-pane" class="preview-pane" aria-label="Markdown preview">
-          <div id="preview"></div>
-        </aside>
       </main>
 
       <footer id="status-bar" class="status-bar">No notes root selected</footer>
+
+      <dialog id="rename-dialog" class="modal-dialog">
+        <form id="rename-form" method="dialog">
+          <h2>Rename Note</h2>
+          <label for="rename-input">Filename</label>
+          <input
+            id="rename-input"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            required
+          />
+          <div class="dialog-actions">
+            <button id="cancel-rename" type="button">Cancel</button>
+            <button type="submit">Rename</button>
+          </div>
+        </form>
+      </dialog>
+
+      <div id="image-overlay" class="image-overlay hidden" aria-hidden="true">
+        <img id="zoomed-image" alt="" />
+      </div>
+
+      <div id="image-context-menu" class="context-menu hidden" role="menu">
+        <button id="copy-image" type="button" role="menuitem">Copy Image</button>
+      </div>
     </div>
 
     <script type="module" src="/src/main.js"></script>

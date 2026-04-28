@@ -9,10 +9,13 @@
   --accent: #8ab4ff;
   --accent-strong: #4f8cff;
   --danger: #ff8a8a;
+  --app-font-size: 15px;
+  --editor-font-size: 14.7px;
+  --result-row-height: 42px;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  font-size: 15px;
+  font-size: var(--app-font-size);
 }
 
 * {
@@ -42,7 +45,7 @@ input {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.75rem;
-  height: 64px;
+  height: 4.25rem;
   padding: 0.75rem;
   border-bottom: 1px solid var(--border);
   background: var(--panel);
@@ -78,18 +81,13 @@ button:hover {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(220px, 25vw) minmax(360px, 1fr) minmax(300px, 32vw);
-  height: calc(100% - 96px);
+  grid-template-columns: minmax(220px, 25vw) minmax(360px, 1fr);
+  height: calc(100% - 6.4rem);
   min-height: 0;
 }
 
-.workspace.preview-hidden {
-  grid-template-columns: minmax(220px, 25vw) minmax(360px, 1fr) 0;
-}
-
 .results-pane,
-.editor-pane,
-.preview-pane {
+.content-pane {
   position: relative;
   min-width: 0;
   min-height: 0;
@@ -97,13 +95,9 @@ button:hover {
   background: var(--panel);
 }
 
-.preview-pane {
+.content-pane {
   border-right: 0;
   overflow: hidden;
-}
-
-.workspace.preview-hidden .preview-pane {
-  display: none;
 }
 
 .root-banner {
@@ -135,8 +129,8 @@ button:hover {
   right: 0;
   display: grid;
   align-content: center;
-  height: 64px;
-  padding: 0.55rem 0.75rem;
+  height: var(--result-row-height);
+  padding: 0.25rem 0.75rem;
   border: 0;
   border-radius: 0;
   border-bottom: 1px solid var(--border);
@@ -157,17 +151,9 @@ button:hover {
   white-space: nowrap;
 }
 
-.result-snippet {
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 0.85rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .context-menu {
   position: fixed;
-  z-index: 20;
+  z-index: 30;
   min-width: 160px;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -186,12 +172,43 @@ button:hover {
 }
 
 .context-menu button:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+#delete-note:hover {
   color: var(--danger);
   background: color-mix(in srgb, var(--danger) 12%, transparent);
 }
 
-.editor-pane {
+.editor-pane,
+.preview-pane {
+  position: absolute;
+  inset: 0;
   overflow: hidden;
+}
+
+.workspace.no-note-selected .editor-pane,
+.workspace.no-note-selected .preview-pane,
+.workspace.edit-mode .preview-pane,
+.workspace.preview-mode .editor-pane {
+  display: none;
+}
+
+.workspace.edit-mode .editor-pane,
+.workspace.preview-mode .preview-pane {
+  display: block;
+}
+
+.empty-state {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  color: var(--muted);
+  text-align: center;
+  background: var(--bg);
 }
 
 #editor,
@@ -207,7 +224,7 @@ button:hover {
 .cm-content {
   padding: 1.25rem;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 0.98rem;
+  font-size: var(--editor-font-size);
   line-height: 1.55;
 }
 
@@ -248,6 +265,7 @@ button:hover {
 #preview img {
   max-width: 100%;
   border-radius: 8px;
+  cursor: zoom-in;
 }
 
 #preview table {
@@ -285,7 +303,7 @@ button:hover {
 }
 
 .status-bar {
-  height: 32px;
+  height: 2.15rem;
   padding: 0.4rem 0.75rem;
   border-top: 1px solid var(--border);
   color: var(--muted);
@@ -297,12 +315,80 @@ button:hover {
   color: var(--danger);
 }
 
+.modal-dialog {
+  width: min(360px, calc(100vw - 2rem));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0;
+  color: var(--text);
+  background: var(--panel);
+  box-shadow: 0 18px 60px rgb(0 0 0 / 45%);
+}
+
+.modal-dialog::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+.modal-dialog form {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.modal-dialog h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.modal-dialog label {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.modal-dialog input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  color: var(--text);
+  background: var(--panel-soft);
+  outline: none;
+}
+
+.modal-dialog input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.image-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(0 0 0 / 82%);
+  cursor: zoom-out;
+}
+
+.image-overlay.hidden {
+  display: none;
+}
+
+.image-overlay img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
 @media (max-width: 1000px) {
   .workspace {
     grid-template-columns: 260px minmax(320px, 1fr);
-  }
-
-  .preview-pane {
-    display: none;
   }
 }
