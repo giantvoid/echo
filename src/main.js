@@ -25,6 +25,7 @@ const renameInput = document.querySelector("#rename-input");
 const cancelRenameButton = document.querySelector("#cancel-rename");
 const imageOverlay = document.querySelector("#image-overlay");
 const zoomedImage = document.querySelector("#zoomed-image");
+const appInfoOverlay = document.querySelector("#app-info-overlay");
 const imageContextMenu = document.querySelector("#image-context-menu");
 const copyImageButton = document.querySelector("#copy-image");
 
@@ -535,6 +536,17 @@ function hideImageOverlay() {
   hideImageContextMenu();
 }
 
+function showAppInfoOverlay() {
+  appInfoOverlay.classList.remove("hidden");
+  appInfoOverlay.setAttribute("aria-hidden", "false");
+  hideAllContextMenus();
+}
+
+function hideAppInfoOverlay() {
+  appInfoOverlay.classList.add("hidden");
+  appInfoOverlay.setAttribute("aria-hidden", "true");
+}
+
 function showImageContextMenu(event, assetPath) {
   hideContextMenu();
   appState.imageContextAssetPath = assetPath;
@@ -781,6 +793,9 @@ window.addEventListener("keydown", (event) => {
     event.preventDefault();
     searchInput.focus();
     searchInput.select();
+  } else if (isCommandShortcut && key === "k") {
+    event.preventDefault();
+    showAppInfoOverlay();
   } else if (isCommandShortcut && key === "e") {
     event.preventDefault();
     void togglePreviewMode();
@@ -794,6 +809,7 @@ window.addEventListener("keydown", (event) => {
     event.preventDefault();
     void changeUiScale(-1);
   } else if (event.key === "Escape") {
+    hideAppInfoOverlay();
     hideImageOverlay();
     hideAllContextMenus();
   }
@@ -823,6 +839,11 @@ copyImageButton.addEventListener("click", () => {
 imageOverlay.addEventListener("click", (event) => {
   if (event.button === 0) {
     hideImageOverlay();
+  }
+});
+appInfoOverlay.addEventListener("click", (event) => {
+  if (event.button === 0) {
+    hideAppInfoOverlay();
   }
 });
 zoomedImage.addEventListener("contextmenu", (event) => {

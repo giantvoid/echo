@@ -65,6 +65,53 @@
         <img id="zoomed-image" alt="" />
       </div>
 
+      <div
+        id="app-info-overlay"
+        class="app-info-overlay hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="app-info-title"
+        aria-hidden="true"
+      >
+        <section class="app-info-panel">
+          <p class="app-info-eyebrow">PureType</p>
+          <h2 id="app-info-title">Application Shortcuts</h2>
+          <p class="app-info-description">
+            Use these keyboard shortcuts to move quickly through notes and the app.
+          </p>
+          <dl class="shortcut-list">
+            <div>
+              <dt><kbd>Ctrl/Cmd</kbd> + <kbd>K</kbd></dt>
+              <dd>Show application information</dd>
+            </div>
+            <div>
+              <dt><kbd>Ctrl/Cmd</kbd> + <kbd>L</kbd></dt>
+              <dd>Focus search</dd>
+            </div>
+            <div>
+              <dt><kbd>Ctrl/Cmd</kbd> + <kbd>D</kbd></dt>
+              <dd>Open today's daily note</dd>
+            </div>
+            <div>
+              <dt><kbd>Ctrl/Cmd</kbd> + <kbd>E</kbd></dt>
+              <dd>Toggle preview</dd>
+            </div>
+            <div>
+              <dt><kbd>Ctrl/Cmd</kbd> + <kbd>+</kbd> / <kbd>-</kbd></dt>
+              <dd>Adjust UI size</dd>
+            </div>
+            <div>
+              <dt><kbd>Enter</kbd></dt>
+              <dd>Open or create from search</dd>
+            </div>
+            <div>
+              <dt><kbd>Escape</kbd></dt>
+              <dd>Close overlays and context menus</dd>
+            </div>
+          </dl>
+        </section>
+      </div>
+
       <div id="image-context-menu" class="context-menu hidden" role="menu">
         <button id="copy-image" type="button" role="menuitem">Copy Image</button>
       </div>
