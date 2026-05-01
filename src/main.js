@@ -2,8 +2,10 @@ import "./styles.css";
 
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers } from "@codemirror/view";
+import { tags } from "@lezer/highlight";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -107,6 +109,22 @@ const editorTheme = EditorView.theme(
   { dark: true },
 );
 
+const markdownHighlightStyle = HighlightStyle.define([
+  { tag: tags.heading, color: "var(--accent)", fontWeight: "700" },
+  { tag: tags.heading1, color: "var(--accent-strong)", fontWeight: "750" },
+  { tag: tags.heading2, color: "var(--accent)", fontWeight: "700" },
+  { tag: tags.strong, color: "var(--text)", fontWeight: "700" },
+  { tag: tags.emphasis, color: "var(--text)", fontStyle: "italic" },
+  { tag: tags.strikethrough, color: "var(--muted)", textDecoration: "line-through" },
+  { tag: tags.link, color: "var(--accent)", textDecoration: "underline" },
+  { tag: tags.url, color: "var(--accent-strong)" },
+  { tag: tags.monospace, color: "var(--accent-strong)" },
+  { tag: tags.quote, color: "var(--muted)", fontStyle: "italic" },
+  { tag: tags.list, color: "var(--accent)" },
+  { tag: tags.contentSeparator, color: "var(--border)" },
+  { tag: tags.processingInstruction, color: "var(--muted)" },
+]);
+
 const editor = new EditorView({
   parent: document.querySelector("#editor"),
   state: EditorState.create({
@@ -115,6 +133,7 @@ const editor = new EditorView({
       lineNumberCompartment.of(lineNumbers()),
       history(),
       markdown(),
+      syntaxHighlighting(markdownHighlightStyle),
       keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
       EditorView.lineWrapping,
       editorTheme,
