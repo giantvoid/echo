@@ -6,6 +6,7 @@ import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers } from "@codemirror/view";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open } from "@tauri-apps/plugin-dialog";
 
 const searchInput = document.querySelector("#search-input");
@@ -33,6 +34,7 @@ const calendarGrid = document.querySelector("#calendar-grid");
 const calendarPrevButton = document.querySelector("#calendar-prev");
 const calendarTodayButton = document.querySelector("#calendar-today");
 const calendarNextButton = document.querySelector("#calendar-next");
+const appWindow = getCurrentWindow();
 
 let rowHeight = 42;
 const minUiScale = -4;
@@ -79,6 +81,7 @@ const appState = {
   uiScale: 0,
   theme: "dark",
   focusMode: false,
+  focusModeTransition: false,
   firstRun: false,
   welcomeCreated: false,
   calendarYear: initialCalendarDate.getFullYear(),
@@ -182,10 +185,13 @@ function clearCurrentNote() {
 }
 
 async function setFocusMode(enabled) {
-  if (appState.focusMode === enabled) {
+  if (appState.focusMode === enabled || appState.focusModeTransition) {
     return;
   }
 
+  const previousFocusMode = appState.focusMode;
+  const previousViewMode = appState.viewMode;
+  appState.focusModeTransition = true;
   appState.focusMode = enabled;
   if (enabled) {
     hideAppInfoOverlay();
@@ -194,20 +200,24 @@ async function setFocusMode(enabled) {
     appState.viewMode = "edit";
   }
 
-  document.documentElement.classList.toggle("focus-mode", enabled);
-  editor.dispatch({
-    effects: lineNumberCompartment.reconfigure(enabled ? [] : lineNumbers()),
-  });
-  updateWorkspaceState();
-
   try {
-    if (enabled && !document.fullscreenElement && document.documentElement.requestFullscreen) {
-      await document.documentElement.requestFullscreen();
-    } else if (!enabled && document.fullscreenElement && document.exitFullscreen) {
-      await document.exitFullscreen();
-    }
-  } catch {
-    // Fullscreen can be denied by the platform; the focused layout still applies.
+    await appWindow.setFullscreen(enabled);
+    document.documentElement.classList.toggle("focus-mode", enabled);
+    editor.dispatch({
+      effects: lineNumberCompartment.reconfigure(enabled ? [] : lineNumbers()),
+    });
+    updateWorkspaceState();
+  } catch (error) {
+    appState.focusMode = previousFocusMode;
+    appState.viewMode = previousViewMode;
+    document.documentElement.classList.toggle("focus-mode", previousFocusMode);
+    editor.dispatch({
+      effects: lineNumberCompartment.reconfigure(previousFocusMode ? [] : lineNumbers()),
+    });
+    updateWorkspaceState();
+    setStatus(String(error), true);
+  } finally {
+    appState.focusModeTransition = false;
   }
 
   if (appState.currentPath) {
@@ -1063,20 +1073,15 @@ searchInput.addEventListener("keydown", (event) => {
 window.addEventListener("keydown", (event) => {
   const isCommandShortcut = event.metaKey || event.ctrlKey;
   const key = event.key.toLowerCase();
+  const isFocusToggleShortcut = isCommandShortcut && !event.altKey && key === "f";
   const appShortcutKeys = new Set(["l", "k", "e", "t", "d", "+", "=", "-", "f"]);
 
   if (appState.focusMode) {
-    if (isCommandShortcut && key === "f") {
+    if (isFocusToggleShortcut) {
       event.preventDefault();
       void toggleFocusMode();
-    } else if (
-      (isCommandShortcut && appShortcutKeys.has(key)) ||
-      event.key === "Escape"
-    ) {
+    } else if (isCommandShortcut && appShortcutKeys.has(key)) {
       event.preventDefault();
-      if (event.key === "Escape") {
-        void setFocusMode(false);
-      }
     }
     return;
   }
@@ -1097,7 +1102,7 @@ window.addEventListener("keydown", (event) => {
   } else if (isCommandShortcut && key === "d") {
     event.preventDefault();
     void openTodayDailyNote();
-  } else if (isCommandShortcut && key === "f") {
+  } else if (isFocusToggleShortcut) {
     event.preventDefault();
     void toggleFocusMode();
   } else if (isCommandShortcut && (event.key === "+" || event.key === "=")) {
@@ -1168,12 +1173,6 @@ window.addEventListener("click", (event) => {
   }
 });
 window.addEventListener("blur", hideAllContextMenus);
-document.addEventListener("fullscreenchange", () => {
-  if (!document.fullscreenElement && appState.focusMode) {
-    void setFocusMode(false);
-  }
-});
-
 await listen("notes-changed", () => {
   void loadSnapshot();
 });
