@@ -1,6 +1,6 @@
 import "./styles.css";
 
-import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+import { defaultKeymap, history, historyKeymap, indentLess, indentMore } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { Compartment, EditorState } from "@codemirror/state";
@@ -135,7 +135,12 @@ const editor = new EditorView({
       history(),
       markdown(),
       syntaxHighlighting(markdownHighlightStyle),
-      keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
+      keymap.of([
+        { key: "Tab", run: indentMore },
+        { key: "Shift-Tab", run: indentLess },
+        ...defaultKeymap,
+        ...historyKeymap,
+      ]),
       EditorView.lineWrapping,
       editorTheme,
       EditorView.updateListener.of((update) => {
