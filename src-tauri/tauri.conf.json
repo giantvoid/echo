@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "PureType",
+  "productName": "puretype",
   "version": "0.1.0",
-  "identifier": "com.puretype.app",
+  "identifier": "app.puretype.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://127.0.0.1:5173",
@@ -13,7 +13,7 @@
     "enableGTKAppId": true,
     "windows": [
       {
-        "title": "PureType",
+        "title": "puretype",
         "width": 1280,
         "height": 820,
         "minWidth": 900,

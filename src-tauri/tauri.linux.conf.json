@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "com.puretype.app",
-  "identifier": "com.puretype.app",
-  "mainBinaryName": "com.puretype.app",
+  "productName": "puretype",
+  "identifier": "app.puretype.desktop",
+  "mainBinaryName": "app.puretype.desktop",
   "bundle": {
     "linux": {
       "deb": {

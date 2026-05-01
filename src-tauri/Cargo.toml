@@ -2,7 +2,7 @@
 name = "puretype"
 version = "0.1.0"
 description = "A high-performance Markdown note-taking app inspired by nvALT."
-authors = ["PureType"]
+authors = ["puretype"]
 edition = "2021"
 
 [lib]

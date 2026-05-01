@@ -4,9 +4,9 @@ Categories={{categories}}
 Comment={{comment}}
 {{/if}}
 Exec={{exec}}
-StartupWMClass=com.puretype.app
+StartupWMClass=app.puretype.desktop
 Icon={{icon}}
-Name=PureType
+Name=puretype
 Terminal=false
 Type=Application
 {{#if mime_type}}

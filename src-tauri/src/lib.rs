@@ -830,10 +830,12 @@ fn fuzzy_score(query: &str, text: &str) -> Option<i64> {
     None
 }
 
+const CONFIG_DIR_NAME: &str = "puretype";
+
 fn config_path() -> Result<PathBuf, String> {
     let config_dir = dirs::config_dir()
         .ok_or_else(|| "Could not determine the user config directory.".to_string())?
-        .join("PureType");
+        .join(CONFIG_DIR_NAME);
     fs::create_dir_all(&config_dir)
         .map_err(|error| format!("Could not create config directory: {error}"))?;
     Ok(config_dir.join("config.json"))
@@ -892,5 +894,5 @@ pub fn run() {
             resolve_note_asset
         ])
         .run(tauri::generate_context!())
-        .expect("error while running PureType");
+        .expect("error while running puretype");
 }

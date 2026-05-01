@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-app_id="com.puretype.app"
+app_id="app.puretype.desktop"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
 data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
@@ -17,7 +17,7 @@ install -m 0644 "$repo_root/src-tauri/icons/icon.png" "$icon_file"
 cat > "$desktop_file" <<EOF
 [Desktop Entry]
 Type=Application
-Name=PureType
+Name=puretype
 Comment=A high-performance Markdown note-taking app inspired by nvALT.
 Exec=$binary_path
 Icon=$app_id

@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default desktop permissions for PureType.",
+  "description": "Default desktop permissions for puretype.",
   "windows": ["main"],
   "permissions": [
     "core:default",

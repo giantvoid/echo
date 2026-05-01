@@ -41,9 +41,9 @@ const minUiScale = -4;
 const maxUiScale = 8;
 const themes = ["dark", "light", "solarized", "hacker", "orange-hacker"];
 const lineNumberCompartment = new Compartment();
-const welcomeNoteContent = `# Welcome to PureType
+const welcomeNoteContent = `# Welcome to puretype
 
-PureType is a fast Markdown notebook for writing, searching, and daily notes.
+puretype is a fast Markdown notebook for writing, searching, and daily notes.
 
 ## Quick Start
 
@@ -451,7 +451,7 @@ async function chooseRoot() {
   const selected = await open({
     directory: true,
     multiple: false,
-    title: "Choose PureType Notes Folder",
+    title: "Choose puretype Notes Folder",
   });
 
   if (!selected) {
