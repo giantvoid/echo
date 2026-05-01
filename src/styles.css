@@ -577,6 +577,10 @@ button:hover {
   box-shadow: 0 18px 60px rgb(0 0 0 / 45%);
 }
 
+.markdown-info-panel {
+  width: min(860px, calc(100vw - 2rem));
+}
+
 .app-info-eyebrow {
   margin: 0 0 0.25rem;
   color: var(--accent);
@@ -597,13 +601,15 @@ button:hover {
   line-height: 1.45;
 }
 
-.shortcut-list {
+.shortcut-list,
+.markdown-syntax-list {
   display: grid;
   gap: 0.4rem;
   margin: 0;
 }
 
-.shortcut-list div {
+.shortcut-list div,
+.markdown-syntax-list div {
   display: grid;
   grid-template-columns: minmax(170px, auto) 1fr;
   gap: 0.75rem;
@@ -613,17 +619,47 @@ button:hover {
 }
 
 .shortcut-list dt,
-.shortcut-list dd {
+.shortcut-list dd,
+.markdown-syntax-list dt,
+.markdown-syntax-list dd {
   margin: 0;
 }
 
-.shortcut-list dt {
+.shortcut-list dt,
+.markdown-syntax-list dt {
   color: var(--text);
   white-space: nowrap;
 }
 
-.shortcut-list dd {
+.shortcut-list dd,
+.markdown-syntax-list dd {
   color: var(--muted);
+}
+
+.markdown-syntax-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 1.25rem;
+  line-height: 1.45;
+}
+
+.markdown-syntax-list div {
+  grid-template-columns: minmax(150px, auto) 1fr;
+}
+
+.markdown-syntax-list code {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.12rem 0.32rem;
+  color: var(--accent);
+  background: var(--panel-soft);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.86em;
+}
+
+@media (max-width: 760px) {
+  .markdown-syntax-list {
+    grid-template-columns: 1fr;
+  }
 }
 
 kbd {

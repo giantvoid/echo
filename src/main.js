@@ -29,6 +29,7 @@ const cancelRenameButton = document.querySelector("#cancel-rename");
 const imageOverlay = document.querySelector("#image-overlay");
 const zoomedImage = document.querySelector("#zoomed-image");
 const appInfoOverlay = document.querySelector("#app-info-overlay");
+const markdownInfoOverlay = document.querySelector("#markdown-info-overlay");
 const imageContextMenu = document.querySelector("#image-context-menu");
 const copyImageButton = document.querySelector("#copy-image");
 const calendarTitle = document.querySelector("#calendar-title");
@@ -214,6 +215,7 @@ async function setFocusMode(enabled) {
   appState.focusMode = enabled;
   if (enabled) {
     hideAppInfoOverlay();
+    hideMarkdownInfoOverlay();
     hideImageOverlay();
     hideAllContextMenus();
     appState.viewMode = "edit";
@@ -817,6 +819,7 @@ function hideImageOverlay() {
 }
 
 function showAppInfoOverlay() {
+  hideMarkdownInfoOverlay();
   appInfoOverlay.classList.remove("hidden");
   appInfoOverlay.setAttribute("aria-hidden", "false");
   hideAllContextMenus();
@@ -825,6 +828,18 @@ function showAppInfoOverlay() {
 function hideAppInfoOverlay() {
   appInfoOverlay.classList.add("hidden");
   appInfoOverlay.setAttribute("aria-hidden", "true");
+}
+
+function showMarkdownInfoOverlay() {
+  hideAppInfoOverlay();
+  markdownInfoOverlay.classList.remove("hidden");
+  markdownInfoOverlay.setAttribute("aria-hidden", "false");
+  hideAllContextMenus();
+}
+
+function hideMarkdownInfoOverlay() {
+  markdownInfoOverlay.classList.add("hidden");
+  markdownInfoOverlay.setAttribute("aria-hidden", "true");
 }
 
 function showImageContextMenu(event, assetPath) {
@@ -1093,7 +1108,7 @@ window.addEventListener("keydown", (event) => {
   const isCommandShortcut = event.metaKey || event.ctrlKey;
   const key = event.key.toLowerCase();
   const isFocusToggleShortcut = isCommandShortcut && !event.altKey && key === "f";
-  const appShortcutKeys = new Set(["l", "k", "e", "t", "d", "+", "=", "-", "f"]);
+  const appShortcutKeys = new Set(["l", "k", "m", "e", "t", "d", "+", "=", "-", "f"]);
 
   if (appState.focusMode) {
     if (isFocusToggleShortcut) {
@@ -1112,6 +1127,9 @@ window.addEventListener("keydown", (event) => {
   } else if (isCommandShortcut && key === "k") {
     event.preventDefault();
     showAppInfoOverlay();
+  } else if (isCommandShortcut && key === "m") {
+    event.preventDefault();
+    showMarkdownInfoOverlay();
   } else if (isCommandShortcut && key === "e") {
     event.preventDefault();
     void togglePreviewMode();
@@ -1132,6 +1150,7 @@ window.addEventListener("keydown", (event) => {
     void changeUiScale(-1);
   } else if (event.key === "Escape") {
     hideAppInfoOverlay();
+    hideMarkdownInfoOverlay();
     hideImageOverlay();
     hideAllContextMenus();
   }
@@ -1175,6 +1194,11 @@ imageOverlay.addEventListener("click", (event) => {
 appInfoOverlay.addEventListener("click", (event) => {
   if (event.button === 0) {
     hideAppInfoOverlay();
+  }
+});
+markdownInfoOverlay.addEventListener("click", (event) => {
+  if (event.button === 0) {
+    hideMarkdownInfoOverlay();
   }
 });
 zoomedImage.addEventListener("contextmenu", (event) => {
