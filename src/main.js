@@ -37,7 +37,7 @@ const calendarNextButton = document.querySelector("#calendar-next");
 let rowHeight = 42;
 const minUiScale = -4;
 const maxUiScale = 8;
-const themes = ["dark", "light", "solarized", "hacker"];
+const themes = ["dark", "light", "solarized", "hacker", "orange-hacker"];
 const lineNumberCompartment = new Compartment();
 const welcomeNoteContent = `# Welcome to PureType
 
@@ -50,8 +50,8 @@ PureType is a fast Markdown notebook for writing, searching, and daily notes.
 - Use Ctrl/Cmd+D or the Today button to open today's daily note.
 - Use the calendar to jump to any daily note; days with daily notes are marked.
 - Use Ctrl/Cmd+E to toggle Markdown preview.
-- Use Ctrl/Cmd+T to switch themes: dark, light, solarized, and hacker.
-- Use Ctrl/Cmd+F for focus mode when you want only the editor.
+- Use Ctrl/Cmd+T to switch themes: dark, light, solarized, hacker, and orange hacker.
+- Use Ctrl/Cmd+F to toggle focus mode when you want only the editor.
 - Use Ctrl/Cmd++ and Ctrl/Cmd+- to adjust the UI size.
 - Paste images directly into an open note to attach them.
 - Use Ctrl/Cmd+K anytime to see shortcuts.

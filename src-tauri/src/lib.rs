@@ -220,7 +220,10 @@ fn save_ui_scale(ui_scale: i32) -> Result<AppConfig, String> {
 #[tauri::command]
 fn save_theme(theme: String) -> Result<AppConfig, String> {
     let normalized = theme.trim().to_ascii_lowercase();
-    if !matches!(normalized.as_str(), "dark" | "light" | "solarized" | "hacker") {
+    if !matches!(
+        normalized.as_str(),
+        "dark" | "light" | "solarized" | "hacker" | "orange-hacker"
+    ) {
         return Err("Unknown theme.".to_string());
     }
     let mut config = load_config();
