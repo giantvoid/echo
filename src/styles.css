@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
   --bg: #111318;
   --panel: #181b22;
   --panel-soft: #20242d;
@@ -9,6 +9,7 @@
   --accent: #8ab4ff;
   --accent-strong: #4f8cff;
   --danger: #ff8a8a;
+  --note-list-width: 300px;
   --app-font-size: 15px;
   --editor-font-size: 14.7px;
   --result-row-height: 42px;
@@ -16,6 +17,45 @@
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   font-size: var(--app-font-size);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f7f4ee;
+  --panel: #fffaf1;
+  --panel-soft: #eee6d8;
+  --border: #d7cdbf;
+  --text: #241f1a;
+  --muted: #70685e;
+  --accent: #2869c7;
+  --accent-strong: #174ea6;
+  --danger: #b3261e;
+}
+
+:root[data-theme="solarized"] {
+  color-scheme: light;
+  --bg: #fdf6e3;
+  --panel: #eee8d5;
+  --panel-soft: #e4ddc9;
+  --border: #d6ceb8;
+  --text: #073642;
+  --muted: #657b83;
+  --accent: #268bd2;
+  --accent-strong: #2aa198;
+  --danger: #dc322f;
+}
+
+:root[data-theme="hacker"] {
+  color-scheme: dark;
+  --bg: #020403;
+  --panel: #050b07;
+  --panel-soft: #07130b;
+  --border: #12451f;
+  --text: #86ff9d;
+  --muted: #4fa861;
+  --accent: #00ff66;
+  --accent-strong: #30ff87;
+  --danger: #ff5f5f;
 }
 
 * {
@@ -77,7 +117,7 @@ button:hover {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(220px, 25vw) minmax(360px, 1fr);
+  grid-template-columns: var(--note-list-width) minmax(360px, 1fr);
   height: calc(100% - 2.15rem);
   min-height: 0;
 }
@@ -93,7 +133,7 @@ button:hover {
 
 .results-pane {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
 }
 
 .content-pane {
@@ -123,6 +163,106 @@ button:hover {
   height: 100%;
   min-height: 0;
   overflow: auto;
+}
+
+.calendar-pane {
+  padding: 0.65rem 0.7rem 0.75rem;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel) 86%, var(--bg));
+}
+
+.calendar-header {
+  display: grid;
+  grid-template-columns: 2.25rem 1fr 2.25rem;
+  gap: 0.45rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.calendar-header button {
+  min-height: 2rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+
+.calendar-title {
+  margin-bottom: 0.45rem;
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 650;
+  text-align: center;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: 2.1rem repeat(7, minmax(0, 1fr));
+  gap: 0.2rem;
+  align-items: center;
+}
+
+.calendar-weekday,
+.calendar-week-number {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 650;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.calendar-week-number {
+  text-transform: none;
+}
+
+.calendar-day {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  aspect-ratio: 1;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0;
+  color: var(--text);
+  background: transparent;
+  font-size: 0.78rem;
+}
+
+.calendar-day:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.calendar-day.outside-month {
+  color: color-mix(in srgb, var(--muted) 48%, transparent);
+}
+
+.calendar-day.weekend {
+  color: var(--accent);
+}
+
+.calendar-day.has-note::after {
+  content: "";
+  position: absolute;
+  bottom: 0.22rem;
+  width: 0.28rem;
+  height: 0.28rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.calendar-day.today {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.calendar-day.selected {
+  color: var(--bg);
+  background: var(--accent);
+}
+
+.calendar-day.editing {
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-strong) 28%, transparent);
 }
 
 .result-row {
@@ -482,8 +622,68 @@ kbd {
   box-shadow: inset 0 -1px 0 rgb(0 0 0 / 35%);
 }
 
+:root[data-theme="hacker"] body,
+:root[data-theme="hacker"] button,
+:root[data-theme="hacker"] input,
+:root[data-theme="hacker"] .cm-content,
+:root[data-theme="hacker"] #preview,
+:root[data-theme="hacker"] kbd {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+:root[data-theme="hacker"] body {
+  text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+:root[data-theme="hacker"] .cm-editor,
+:root[data-theme="hacker"] .results-pane,
+:root[data-theme="hacker"] .status-bar {
+  box-shadow: inset 0 0 32px rgb(0 255 102 / 5%);
+}
+
+.focus-mode body {
+  background: var(--bg);
+}
+
+.focus-mode .workspace {
+  display: block;
+  height: 100%;
+}
+
+.focus-mode .results-pane,
+.focus-mode .status-bar,
+.focus-mode .preview-pane,
+.focus-mode .empty-state {
+  display: none !important;
+}
+
+.focus-mode .content-pane {
+  display: grid;
+  place-items: stretch center;
+  height: 100%;
+  border: 0;
+  background: var(--bg);
+}
+
+.focus-mode .editor-pane {
+  position: relative;
+  inset: auto;
+  width: min(820px, calc(100vw - 4rem));
+  height: 100vh;
+  overflow: hidden;
+}
+
+.focus-mode #editor,
+.focus-mode .cm-editor {
+  height: 100%;
+}
+
+.focus-mode .cm-content {
+  padding: clamp(2rem, 8vh, 5rem) 1.5rem;
+}
+
 @media (max-width: 1000px) {
   .workspace {
-    grid-template-columns: 260px minmax(320px, 1fr);
+    grid-template-columns: var(--note-list-width) minmax(320px, 1fr);
   }
 }

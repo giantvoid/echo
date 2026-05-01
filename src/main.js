@@ -2,7 +2,7 @@ import "./styles.css";
 
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
-import { EditorState } from "@codemirror/state";
+import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers } from "@codemirror/view";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -28,15 +28,40 @@ const zoomedImage = document.querySelector("#zoomed-image");
 const appInfoOverlay = document.querySelector("#app-info-overlay");
 const imageContextMenu = document.querySelector("#image-context-menu");
 const copyImageButton = document.querySelector("#copy-image");
+const calendarTitle = document.querySelector("#calendar-title");
+const calendarGrid = document.querySelector("#calendar-grid");
+const calendarPrevButton = document.querySelector("#calendar-prev");
+const calendarTodayButton = document.querySelector("#calendar-today");
+const calendarNextButton = document.querySelector("#calendar-next");
 
 let rowHeight = 42;
 const minUiScale = -4;
 const maxUiScale = 8;
+const themes = ["dark", "light", "solarized", "hacker"];
+const lineNumberCompartment = new Compartment();
+const welcomeNoteContent = `# Welcome to PureType
+
+PureType is a fast Markdown notebook for writing, searching, and daily notes.
+
+## Quick Start
+
+- Use Ctrl/Cmd+L to search notes or type a new note name.
+- Press Enter in search to open the best match or create a note.
+- Use Ctrl/Cmd+D or the Today button to open today's daily note.
+- Use the calendar to jump to any daily note; days with daily notes are marked.
+- Use Ctrl/Cmd+E to toggle Markdown preview.
+- Use Ctrl/Cmd+T to switch themes: dark, light, solarized, and hacker.
+- Use Ctrl/Cmd+F for focus mode when you want only the editor.
+- Use Ctrl/Cmd++ and Ctrl/Cmd+- to adjust the UI size.
+- Paste images directly into an open note to attach them.
+- Use Ctrl/Cmd+K anytime to see shortcuts.
+`;
 const resultSpacer = document.createElement("div");
 const rowsLayer = document.createElement("div");
 rowsLayer.style.position = "absolute";
 rowsLayer.style.inset = "0";
 resultsList.append(resultSpacer, rowsLayer);
+const initialCalendarDate = new Date();
 
 const appState = {
   root: null,
@@ -52,6 +77,12 @@ const appState = {
   viewMode: "edit",
   imageContextAssetPath: null,
   uiScale: 0,
+  theme: "dark",
+  focusMode: false,
+  firstRun: false,
+  welcomeCreated: false,
+  calendarYear: initialCalendarDate.getFullYear(),
+  calendarMonth: initialCalendarDate.getMonth(),
 };
 
 const editorTheme = EditorView.theme(
@@ -78,7 +109,7 @@ const editor = new EditorView({
   state: EditorState.create({
     doc: "",
     extensions: [
-      lineNumbers(),
+      lineNumberCompartment.of(lineNumbers()),
       history(),
       markdown(),
       keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
@@ -150,12 +181,204 @@ function clearCurrentNote() {
   updateWorkspaceState();
 }
 
+async function setFocusMode(enabled) {
+  if (appState.focusMode === enabled) {
+    return;
+  }
+
+  appState.focusMode = enabled;
+  if (enabled) {
+    hideAppInfoOverlay();
+    hideImageOverlay();
+    hideAllContextMenus();
+    appState.viewMode = "edit";
+  }
+
+  document.documentElement.classList.toggle("focus-mode", enabled);
+  editor.dispatch({
+    effects: lineNumberCompartment.reconfigure(enabled ? [] : lineNumbers()),
+  });
+  updateWorkspaceState();
+
+  try {
+    if (enabled && !document.fullscreenElement && document.documentElement.requestFullscreen) {
+      await document.documentElement.requestFullscreen();
+    } else if (!enabled && document.fullscreenElement && document.exitFullscreen) {
+      await document.exitFullscreen();
+    }
+  } catch {
+    // Fullscreen can be denied by the platform; the focused layout still applies.
+  }
+
+  if (appState.currentPath) {
+    editor.focus();
+  }
+}
+
+async function toggleFocusMode() {
+  await setFocusMode(!appState.focusMode);
+}
+
+function formatDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function dailyNotePathForDate(date, includeExtension = false) {
+  const path = `daily/${formatDateKey(date)}`;
+  return includeExtension ? `${path}.md` : path;
+}
+
 function todayDailyNotePath() {
+  return dailyNotePathForDate(new Date());
+}
+
+function parseDailyNoteDate(path) {
+  const match = path?.match(/^daily\/(\d{4})-(\d{2})-(\d{2})\.md$/i);
+  if (!match) {
+    return null;
+  }
+  const year = Number(match[1]);
+  const month = Number(match[2]) - 1;
+  const day = Number(match[3]);
+  const date = new Date(year, month, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+  return date;
+}
+
+function syncCalendarToCurrentNote() {
+  const date = parseDailyNoteDate(appState.currentPath);
+  if (!date) {
+    renderCalendar();
+    return;
+  }
+  appState.calendarYear = date.getFullYear();
+  appState.calendarMonth = date.getMonth();
+  renderCalendar();
+}
+
+function sameDay(left, right) {
+  return (
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate()
+  );
+}
+
+function isoWeekNumber(date) {
+  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNumber = utcDate.getUTCDay() || 7;
+  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - dayNumber);
+  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+  return Math.ceil(((utcDate - yearStart) / 86400000 + 1) / 7);
+}
+
+function hasDailyNote(date) {
+  const path = dailyNotePathForDate(date, true).toLowerCase();
+  return appState.notes.some((note) => note.path.toLowerCase() === path);
+}
+
+function renderCalendar() {
+  const monthStart = new Date(appState.calendarYear, appState.calendarMonth, 1);
   const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-  return `daily/${year}-${month}-${day}`;
+  const selectedDate = parseDailyNoteDate(appState.currentPath);
+  const mondayOffset = (monthStart.getDay() + 6) % 7;
+  const gridStart = new Date(monthStart);
+  gridStart.setDate(monthStart.getDate() - mondayOffset);
+  const monthName = monthStart.toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric",
+  });
+
+  calendarTitle.textContent = monthName;
+  calendarGrid.replaceChildren();
+
+  const emptyHeader = document.createElement("div");
+  emptyHeader.className = "calendar-weekday";
+  emptyHeader.setAttribute("aria-hidden", "true");
+  calendarGrid.append(emptyHeader);
+
+  for (const weekday of ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]) {
+    const weekdayCell = document.createElement("div");
+    weekdayCell.className = "calendar-weekday";
+    weekdayCell.textContent = weekday;
+    calendarGrid.append(weekdayCell);
+  }
+
+  const cursor = new Date(gridStart);
+  do {
+    const weekNumber = document.createElement("div");
+    weekNumber.className = "calendar-week-number";
+    weekNumber.textContent = String(isoWeekNumber(cursor));
+    calendarGrid.append(weekNumber);
+
+    for (let index = 0; index < 7; index += 1) {
+      const date = new Date(cursor);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "calendar-day";
+      button.textContent = String(date.getDate());
+      button.setAttribute(
+        "aria-label",
+        date.toLocaleDateString(undefined, {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+      );
+      button.classList.toggle("outside-month", date.getMonth() !== appState.calendarMonth);
+      button.classList.toggle("weekend", date.getDay() === 0 || date.getDay() === 6);
+      button.classList.toggle("today", sameDay(date, today));
+      button.classList.toggle("has-note", hasDailyNote(date));
+      button.classList.toggle("selected", Boolean(selectedDate && sameDay(date, selectedDate)));
+      button.classList.toggle("editing", Boolean(selectedDate && sameDay(date, selectedDate)));
+      button.addEventListener("click", () => {
+        void openDailyNoteForDate(date);
+      });
+      calendarGrid.append(button);
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  } while (
+    cursor.getMonth() === appState.calendarMonth ||
+    cursor.getDay() !== 1
+  );
+}
+
+async function openDailyNoteForDate(date) {
+  const dailyPath = dailyNotePathForDate(date);
+  searchInput.value = dailyPath;
+
+  try {
+    const result = await createOrOpenNote(dailyPath);
+    await runSearch(dailyPath);
+    scrollCurrentResultIntoView();
+    setStatus(`${result.created ? "Created" : "Opened"} ${appState.currentPath}`);
+  } catch (error) {
+    setStatus(String(error), true);
+  }
+}
+
+function navigateCalendarMonth(delta) {
+  const nextMonth = new Date(appState.calendarYear, appState.calendarMonth + delta, 1);
+  appState.calendarYear = nextMonth.getFullYear();
+  appState.calendarMonth = nextMonth.getMonth();
+  renderCalendar();
+}
+
+function setCalendarToToday() {
+  const today = new Date();
+  appState.calendarYear = today.getFullYear();
+  appState.calendarMonth = today.getMonth();
+  renderCalendar();
 }
 
 async function openTodayDailyNote() {
@@ -208,6 +431,7 @@ async function loadSnapshot() {
         : "No notes root selected",
     );
     await runSearch(searchInput.value);
+    renderCalendar();
   } catch (error) {
     setStatus(String(error), true);
   }
@@ -230,11 +454,36 @@ async function chooseRoot() {
     appState.notes = snapshot.notes;
     rootBanner.classList.add("hidden");
     setStatus(`${appState.notes.length} notes in ${appState.root}`);
+
+    if (appState.firstRun && !appState.welcomeCreated) {
+      await openWelcomeNote();
+      return;
+    }
+
     await runSearch(searchInput.value);
     searchInput.focus();
   } catch (error) {
     setStatus(String(error), true);
   }
+}
+
+async function openWelcomeNote() {
+  const result = await createOrOpenNote("Welcome");
+  if (result.created) {
+    await invoke("save_note", {
+      path: appState.currentPath,
+      content: welcomeNoteContent,
+    });
+    setEditorContent(welcomeNoteContent);
+    await loadSnapshot();
+  }
+  appState.firstRun = false;
+  appState.welcomeCreated = true;
+  searchInput.value = "Welcome";
+  await runSearch(searchInput.value);
+  scrollCurrentResultIntoView();
+  editor.focus();
+  setStatus(`${result.created ? "Created" : "Opened"} ${appState.currentPath}`);
 }
 
 async function runSearch(query) {
@@ -311,6 +560,7 @@ async function openNote(path) {
     setEditorContent(opened.content);
     searchInput.value = opened.note.path.replace(/\.md$/i, "");
     renderResults();
+    syncCalendarToCurrentNote();
     if (appState.viewMode === "preview") {
       await updatePreview();
     }
@@ -352,6 +602,7 @@ async function createOrOpenNote(query) {
       await updatePreview();
     }
     updateWorkspaceState();
+    syncCalendarToCurrentNote();
     editor.focus();
     return result;
   } catch (error) {
@@ -748,10 +999,34 @@ function applyUiScale(uiScale) {
   renderResults();
 }
 
-async function loadUiScale() {
+function normalizeTheme(theme) {
+  return themes.includes(theme) ? theme : "dark";
+}
+
+function applyTheme(theme) {
+  appState.theme = normalizeTheme(theme);
+  document.documentElement.dataset.theme = appState.theme;
+}
+
+async function loadAppConfig() {
   try {
     const config = await invoke("get_app_config");
     applyUiScale(config.uiScale ?? 0);
+    applyTheme(config.theme ?? "dark");
+    appState.firstRun = Boolean(config.firstRun);
+  } catch (error) {
+    applyTheme("dark");
+    setStatus(String(error), true);
+  }
+}
+
+async function cycleTheme() {
+  const currentIndex = themes.indexOf(appState.theme);
+  const nextTheme = themes[(currentIndex + 1) % themes.length] ?? "dark";
+  applyTheme(nextTheme);
+  try {
+    await invoke("save_theme", { theme: nextTheme });
+    setStatus(`Theme: ${nextTheme}`);
   } catch (error) {
     setStatus(String(error), true);
   }
@@ -788,6 +1063,23 @@ searchInput.addEventListener("keydown", (event) => {
 window.addEventListener("keydown", (event) => {
   const isCommandShortcut = event.metaKey || event.ctrlKey;
   const key = event.key.toLowerCase();
+  const appShortcutKeys = new Set(["l", "k", "e", "t", "d", "+", "=", "-", "f"]);
+
+  if (appState.focusMode) {
+    if (isCommandShortcut && key === "f") {
+      event.preventDefault();
+      void toggleFocusMode();
+    } else if (
+      (isCommandShortcut && appShortcutKeys.has(key)) ||
+      event.key === "Escape"
+    ) {
+      event.preventDefault();
+      if (event.key === "Escape") {
+        void setFocusMode(false);
+      }
+    }
+    return;
+  }
 
   if (isCommandShortcut && key === "l") {
     event.preventDefault();
@@ -799,9 +1091,15 @@ window.addEventListener("keydown", (event) => {
   } else if (isCommandShortcut && key === "e") {
     event.preventDefault();
     void togglePreviewMode();
+  } else if (isCommandShortcut && key === "t") {
+    event.preventDefault();
+    void cycleTheme();
   } else if (isCommandShortcut && key === "d") {
     event.preventDefault();
     void openTodayDailyNote();
+  } else if (isCommandShortcut && key === "f") {
+    event.preventDefault();
+    void toggleFocusMode();
   } else if (isCommandShortcut && (event.key === "+" || event.key === "=")) {
     event.preventDefault();
     void changeUiScale(1);
@@ -819,6 +1117,15 @@ chooseRootButton.addEventListener("click", () => {
   void chooseRoot();
 });
 
+calendarPrevButton.addEventListener("click", () => {
+  navigateCalendarMonth(-1);
+});
+calendarTodayButton.addEventListener("click", () => {
+  void openTodayDailyNote();
+});
+calendarNextButton.addEventListener("click", () => {
+  navigateCalendarMonth(1);
+});
 resultsList.addEventListener("scroll", renderVisibleRows, { passive: true });
 resultsList.addEventListener("scroll", hideAllContextMenus, { passive: true });
 deleteNoteButton.addEventListener("click", () => {
@@ -861,12 +1168,17 @@ window.addEventListener("click", (event) => {
   }
 });
 window.addEventListener("blur", hideAllContextMenus);
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement && appState.focusMode) {
+    void setFocusMode(false);
+  }
+});
 
 await listen("notes-changed", () => {
   void loadSnapshot();
 });
 
-await loadUiScale();
+await loadAppConfig();
 await loadSnapshot();
 updateWorkspaceState();
 searchInput.focus();

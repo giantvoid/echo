@@ -24,6 +24,19 @@
             <button id="choose-root" type="button">Choose Notes Folder</button>
           </div>
           <div id="results-list" class="results-list"></div>
+          <section class="calendar-pane" aria-label="Daily note calendar">
+            <div class="calendar-header">
+              <button id="calendar-prev" class="calendar-nav" type="button" aria-label="Previous month">
+                &lt;
+              </button>
+              <button id="calendar-today" type="button">Today</button>
+              <button id="calendar-next" class="calendar-nav" type="button" aria-label="Next month">
+                &gt;
+              </button>
+            </div>
+            <div id="calendar-title" class="calendar-title" aria-live="polite"></div>
+            <div id="calendar-grid" class="calendar-grid"></div>
+          </section>
           <div id="note-context-menu" class="context-menu hidden" role="menu">
             <button id="rename-note" type="button" role="menuitem">Rename Note</button>
             <button id="delete-note" type="button" role="menuitem">Delete Note</button>
@@ -95,6 +108,14 @@
             <div>
               <dt><kbd>Ctrl/Cmd</kbd> + <kbd>E</kbd></dt>
               <dd>Toggle preview</dd>
+            </div>
+            <div>
+              <dt><kbd>Ctrl/Cmd</kbd> + <kbd>T</kbd></dt>
+              <dd>Switch color theme</dd>
+            </div>
+            <div>
+              <dt><kbd>Ctrl/Cmd</kbd> + <kbd>F</kbd></dt>
+              <dd>Toggle focus mode</dd>
             </div>
             <div>
               <dt><kbd>Ctrl/Cmd</kbd> + <kbd>+</kbd> / <kbd>-</kbd></dt>

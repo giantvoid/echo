@@ -64,6 +64,16 @@ struct RenameNoteResult {
 struct AppConfig {
     notes_root: Option<String>,
     ui_scale: Option<i32>,
+    theme: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppConfigResponse {
+    notes_root: Option<String>,
+    ui_scale: Option<i32>,
+    theme: Option<String>,
+    first_run: bool,
 }
 
 #[derive(Default)]
@@ -188,14 +198,33 @@ fn set_notes_root(
 }
 
 #[tauri::command]
-fn get_app_config() -> AppConfig {
-    load_config()
+fn get_app_config() -> AppConfigResponse {
+    let first_run = !config_file_exists();
+    let config = load_config();
+    AppConfigResponse {
+        notes_root: config.notes_root,
+        ui_scale: config.ui_scale,
+        theme: config.theme,
+        first_run,
+    }
 }
 
 #[tauri::command]
 fn save_ui_scale(ui_scale: i32) -> Result<AppConfig, String> {
     let mut config = load_config();
     config.ui_scale = Some(ui_scale);
+    save_config(&config)?;
+    Ok(config)
+}
+
+#[tauri::command]
+fn save_theme(theme: String) -> Result<AppConfig, String> {
+    let normalized = theme.trim().to_ascii_lowercase();
+    if !matches!(normalized.as_str(), "dark" | "light" | "solarized" | "hacker") {
+        return Err("Unknown theme.".to_string());
+    }
+    let mut config = load_config();
+    config.theme = Some(normalized);
     save_config(&config)?;
     Ok(config)
 }
@@ -807,6 +836,10 @@ fn config_path() -> Result<PathBuf, String> {
     Ok(config_dir.join("config.json"))
 }
 
+fn config_file_exists() -> bool {
+    config_path().is_ok_and(|path| path.exists())
+}
+
 fn load_config() -> AppConfig {
     config_path()
         .ok()
@@ -840,6 +873,7 @@ pub fn run() {
             set_notes_root,
             get_app_config,
             save_ui_scale,
+            save_theme,
             search_notes,
             open_note,
             save_note,
