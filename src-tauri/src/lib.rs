@@ -830,7 +830,7 @@ fn fuzzy_score(query: &str, text: &str) -> Option<i64> {
     None
 }
 
-const CONFIG_DIR_NAME: &str = "puretype";
+const CONFIG_DIR_NAME: &str = "echo";
 
 fn config_path() -> Result<PathBuf, String> {
     let config_dir = dirs::config_dir()
@@ -894,5 +894,5 @@ pub fn run() {
             resolve_note_asset
         ])
         .run(tauri::generate_context!())
-        .expect("error while running puretype");
+        .expect("error while running Echo");
 }

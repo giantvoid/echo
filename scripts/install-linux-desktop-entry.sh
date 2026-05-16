@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-app_id="app.puretype.desktop"
+app_id="app.echo.desktop"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
 data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
@@ -9,7 +9,7 @@ desktop_dir="$data_home/applications"
 icon_dir="$data_home/icons/hicolor/512x512/apps"
 desktop_file="$desktop_dir/$app_id.desktop"
 icon_file="$icon_dir/$app_id.png"
-binary_path="$repo_root/src-tauri/target/debug/$app_id"
+binary_path="$repo_root/src-tauri/target/debug/echoedit"
 
 mkdir -p "$desktop_dir" "$icon_dir"
 install -m 0644 "$repo_root/src-tauri/icons/icon.png" "$icon_file"
@@ -17,7 +17,7 @@ install -m 0644 "$repo_root/src-tauri/icons/icon.png" "$icon_file"
 cat > "$desktop_file" <<EOF
 [Desktop Entry]
 Type=Application
-Name=puretype
+Name=Echo
 Comment=A high-performance Markdown note-taking app inspired by nvALT.
 Exec=$binary_path
 Icon=$app_id

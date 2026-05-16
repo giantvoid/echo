@@ -1,12 +1,12 @@
 [package]
-name = "puretype"
+name = "echoedit"
 version = "0.1.0"
-description = "A high-performance Markdown note-taking app inspired by nvALT."
-authors = ["puretype"]
+description = "A high-performance Markdown note-taking app."
+authors = ["Andriy Makarevych"]
 edition = "2021"
 
 [lib]
-name = "puretype_lib"
+name = "echoedit_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

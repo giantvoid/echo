@@ -44,9 +44,9 @@ const minUiScale = -4;
 const maxUiScale = 8;
 const themes = ["dark", "light", "solarized", "hacker", "orange-hacker"];
 const lineNumberCompartment = new Compartment();
-const welcomeNoteContent = `# Welcome to puretype
+const welcomeNoteContent = `# Welcome to Echo
 
-puretype is a fast Markdown notebook for writing, searching, and daily notes.
+Echo is a fast Markdown notebook for writing, searching, and daily notes.
 
 ## Quick Start
 
@@ -477,7 +477,7 @@ async function chooseRoot() {
   const selected = await open({
     directory: true,
     multiple: false,
-    title: "Choose puretype Notes Folder",
+    title: "Choose Echo Notes Folder",
   });
 
   if (!selected) {

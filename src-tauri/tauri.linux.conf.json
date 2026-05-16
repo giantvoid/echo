@@ -1,15 +1,15 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "puretype",
-  "identifier": "app.puretype.desktop",
-  "mainBinaryName": "app.puretype.desktop",
+  "productName": "Echo",
+  "identifier": "app.echo.desktop",
+  "mainBinaryName": "echoedit",
   "bundle": {
     "linux": {
       "deb": {
-        "desktopTemplate": "linux/puretype.desktop"
+        "desktopTemplate": "linux/echo.desktop"
       },
       "rpm": {
-        "desktopTemplate": "linux/puretype.desktop"
+        "desktopTemplate": "linux/echo.desktop"
       }
     }
   }

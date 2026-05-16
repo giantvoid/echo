@@ -1,4 +1,4 @@
-Project Specification: "puretype" – High-Performance nvALT Clone
+Project Specification: "Echo" – High-Performance nvALT Clone
 
 1. Core Vision
 
