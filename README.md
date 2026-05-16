@@ -6,7 +6,7 @@ Built for focus. Designed for flow.
 
 Echo gets out of your way so you can think clearly and do your **real work**.
 
-![Echo Main View](screenshots/echo.png)
+![Echo Main View](homepage/screenshots/echo.png)
 
 ## Features
 
@@ -23,19 +23,19 @@ Echo gets out of your way so you can think clearly and do your **real work**.
 ## Screenshots
 
 **Main Interface**  
-![Main Interface](screenshots/echo.png)
+![Main Interface](homepage/screenshots/echo.png)
 
 **All Color Themes**  
-![Themes](screenshots/themes.png)
+![Themes](homepage/screenshots/themes.png)
 
 **Focus Mode**  
-![Focus Mode](screenshots/focus-green.png)
+![Focus Mode](homepage/screenshots/focus-green.png)
 
 **Keyboard Shortcuts**  
-![Keyboard Shortcuts](screenshots/keyboard-shortcuts.png)
+![Keyboard Shortcuts](homepage/screenshots/keyboard-shortcuts.png)
 
 **Markdown Syntax Help**  
-![Markdown Syntax](screenshots/markdown-syntax.png)
+![Markdown Syntax](homepage/screenshots/markdown-syntax.png)
 
 ## Download
 
