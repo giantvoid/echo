@@ -72,6 +72,7 @@ const appState = {
   root: null,
   notes: [],
   results: [],
+  selectedIndex: 0,
   currentPath: null,
   loadingDocument: false,
   searchTimer: null,
@@ -531,6 +532,7 @@ async function runSearch(query) {
 
   try {
     appState.results = await invoke("search_notes", { query });
+    appState.selectedIndex = 0;
     renderResults();
   } catch (error) {
     setStatus(String(error), true);
@@ -559,6 +561,26 @@ function scrollCurrentResultIntoView() {
   }
 }
 
+function scrollNavSelectedIntoView() {
+  const index = appState.selectedIndex;
+  if (index < 0 || index >= appState.results.length) {
+    return;
+  }
+
+  const rowTop = index * rowHeight;
+  const rowBottom = rowTop + rowHeight;
+  const viewportTop = resultsList.scrollTop;
+  const viewportBottom = viewportTop + resultsList.clientHeight;
+
+  if (rowTop < viewportTop || rowBottom > viewportBottom) {
+    resultsList.scrollTop =
+      rowTop < viewportTop
+        ? Math.max(0, rowTop - rowHeight)
+        : rowBottom - resultsList.clientHeight + rowHeight;
+    renderVisibleRows();
+  }
+}
+
 function renderVisibleRows() {
   const scrollTop = resultsList.scrollTop;
   const viewportHeight = resultsList.clientHeight;
@@ -576,6 +598,7 @@ function renderVisibleRows() {
     row.className = "result-row";
     row.style.top = `${index * rowHeight}px`;
     row.classList.toggle("selected", note.path === appState.currentPath);
+    row.classList.toggle("nav-selected", index === appState.selectedIndex);
     row.innerHTML = `
       <span class="result-title"></span>
     `;
@@ -1103,9 +1126,29 @@ searchInput.addEventListener("input", () => {
 });
 
 searchInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
+  if (event.key === "ArrowDown") {
     event.preventDefault();
-    void createOrOpenFromSearch();
+    appState.selectedIndex = Math.min(appState.selectedIndex + 1, appState.results.length - 1);
+    scrollNavSelectedIntoView();
+    renderVisibleRows();
+  } else if (event.key === "ArrowUp") {
+    event.preventDefault();
+    appState.selectedIndex = Math.max(appState.selectedIndex - 1, 0);
+    scrollNavSelectedIntoView();
+    renderVisibleRows();
+  } else if (event.key === "Enter") {
+    event.preventDefault();
+    const navNote = appState.results[appState.selectedIndex];
+    if (navNote) {
+      void openNote(navNote.path);
+    } else {
+      void createOrOpenFromSearch();
+    }
+  } else if (event.key === "Escape") {
+    event.stopPropagation();
+    searchInput.value = "";
+    void runSearch("");
+    editor.focus();
   }
 });
 

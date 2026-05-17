@@ -303,6 +303,12 @@ button:hover {
   background: var(--panel-soft);
 }
 
+.result-row.nav-selected {
+  background: var(--accent, var(--panel-soft));
+  outline: 2px solid var(--accent, currentColor);
+  outline-offset: -2px;
+}
+
 .result-title {
   overflow: hidden;
   color: var(--text);
