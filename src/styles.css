@@ -307,6 +307,11 @@ button:hover {
   background: var(--accent, var(--panel-soft));
   outline: 2px solid var(--accent, currentColor);
   outline-offset: -2px;
+  color: var(--bg);
+}
+
+.result-row.nav-selected .result-title {
+  color: var(--bg);
 }
 
 .result-title {
