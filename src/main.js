@@ -1268,6 +1268,10 @@ await listen("notes-changed", () => {
   void loadSnapshot();
 });
 
+document.addEventListener("contextmenu", (event) => {
+  event.preventDefault();
+});
+
 await loadAppConfig();
 await loadSnapshot();
 updateWorkspaceState();
