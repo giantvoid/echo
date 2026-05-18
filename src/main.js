@@ -180,6 +180,9 @@ async function togglePreviewMode() {
     await updatePreview();
   }
   updateWorkspaceState();
+  if (appState.viewMode === "edit") {
+    editor.focus();
+  }
 }
 
 function updateWorkspaceState() {
