@@ -59,12 +59,25 @@ struct RenameNoteResult {
     snapshot: NotesSnapshot,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default)]
+const DEFAULT_UI_SCALE: i32 = 0;
+const DEFAULT_THEME: &str = "dark";
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct AppConfig {
     notes_root: Option<String>,
     ui_scale: Option<i32>,
     theme: Option<String>,
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            notes_root: None,
+            ui_scale: Some(DEFAULT_UI_SCALE),
+            theme: Some(DEFAULT_THEME.to_string()),
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -853,9 +866,20 @@ fn load_config() -> AppConfig {
         .unwrap_or_default()
 }
 
+fn apply_config_defaults(config: &mut AppConfig) {
+    if config.ui_scale.is_none() {
+        config.ui_scale = Some(DEFAULT_UI_SCALE);
+    }
+    if config.theme.is_none() {
+        config.theme = Some(DEFAULT_THEME.to_string());
+    }
+}
+
 fn save_config(config: &AppConfig) -> Result<(), String> {
+    let mut config = config.clone();
+    apply_config_defaults(&mut config);
     let path = config_path()?;
-    let content = serde_json::to_string_pretty(config)
+    let content = serde_json::to_string_pretty(&config)
         .map_err(|error| format!("Could not serialize config: {error}"))?;
     fs::write(path, content).map_err(|error| format!("Could not save config: {error}"))
 }
