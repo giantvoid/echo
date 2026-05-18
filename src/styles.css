@@ -577,6 +577,72 @@ button:hover {
   display: none;
 }
 
+.setup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: color-mix(in srgb, var(--bg) 88%, black);
+  cursor: default;
+}
+
+.setup-overlay.hidden {
+  display: none;
+}
+
+.setup-panel {
+  width: min(440px, calc(100vw - 2rem));
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1.75rem 1.5rem 1.5rem;
+  background: var(--panel);
+  box-shadow: 0 22px 70px rgb(0 0 0 / 48%);
+}
+
+.setup-panel h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.25;
+}
+
+.setup-description {
+  margin: 0.65rem 0 1.35rem;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.setup-primary-button {
+  width: 100%;
+  padding: 0.9rem 1.25rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  border-color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent-strong) 24%, var(--panel-soft));
+}
+
+.setup-primary-button:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent-strong) 34%, var(--panel-soft));
+}
+
+.setup-error {
+  margin: 0.85rem 0 0;
+  color: var(--danger);
+  line-height: 1.4;
+}
+
+.setup-error.hidden {
+  display: none;
+}
+
+html.setup-required .workspace,
+html.setup-required .status-bar {
+  pointer-events: none;
+  user-select: none;
+}
+
 .app-info-panel {
   width: min(520px, calc(100vw - 2rem));
   max-height: calc(100vh - 2rem);

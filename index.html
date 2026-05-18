@@ -138,6 +138,28 @@
       </div>
 
       <div
+        id="setup-overlay"
+        class="setup-overlay hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="setup-title"
+        aria-hidden="true"
+      >
+        <section class="setup-panel">
+          <p class="app-info-eyebrow">Welcome to Echo</p>
+          <h2 id="setup-title">Choose where to store your notes</h2>
+          <p class="setup-description">
+            Echo keeps every note as a plain Markdown file in a folder on your computer. Choose a
+            folder to create your notebook — you can sync or back it up like any other files.
+          </p>
+          <button id="setup-choose-root" type="button" class="setup-primary-button">
+            Choose data folder
+          </button>
+          <p id="setup-error" class="setup-error hidden" role="alert"></p>
+        </section>
+      </div>
+
+      <div
         id="markdown-info-overlay"
         class="app-info-overlay hidden"
         role="dialog"

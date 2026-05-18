@@ -29,6 +29,9 @@ const cancelRenameButton = document.querySelector("#cancel-rename");
 const imageOverlay = document.querySelector("#image-overlay");
 const zoomedImage = document.querySelector("#zoomed-image");
 const appInfoOverlay = document.querySelector("#app-info-overlay");
+const setupOverlay = document.querySelector("#setup-overlay");
+const setupChooseRootButton = document.querySelector("#setup-choose-root");
+const setupError = document.querySelector("#setup-error");
 const markdownInfoOverlay = document.querySelector("#markdown-info-overlay");
 const imageContextMenu = document.querySelector("#image-context-menu");
 const copyImageButton = document.querySelector("#copy-image");
@@ -459,12 +462,54 @@ function showContextMenu(event, note) {
   noteContextMenu.classList.remove("hidden");
 }
 
+function isSetupOverlayVisible() {
+  return !setupOverlay.classList.contains("hidden");
+}
+
+function clearSetupError() {
+  setupError.textContent = "";
+  setupError.classList.add("hidden");
+}
+
+function showSetupError(message) {
+  setupError.textContent = message;
+  setupError.classList.remove("hidden");
+}
+
+function showSetupOverlay() {
+  hideAppInfoOverlay();
+  hideMarkdownInfoOverlay();
+  hideImageOverlay();
+  hideAllContextMenus();
+  rootBanner.classList.add("hidden");
+  setupOverlay.classList.remove("hidden");
+  setupOverlay.setAttribute("aria-hidden", "false");
+  document.documentElement.classList.add("setup-required");
+  setupChooseRootButton.focus();
+}
+
+function hideSetupOverlay() {
+  setupOverlay.classList.add("hidden");
+  setupOverlay.setAttribute("aria-hidden", "true");
+  document.documentElement.classList.remove("setup-required");
+  clearSetupError();
+}
+
+function updateNotesRootSetup() {
+  if (appState.root) {
+    hideSetupOverlay();
+    return;
+  }
+
+  showSetupOverlay();
+}
+
 async function loadSnapshot() {
   try {
     const snapshot = await invoke("get_notes");
     appState.root = snapshot.root;
     appState.notes = snapshot.notes;
-    rootBanner.classList.toggle("hidden", Boolean(appState.root));
+    updateNotesRootSetup();
     setStatus(
       appState.root
         ? `${appState.notes.length} notes in ${appState.root}`
@@ -478,6 +523,7 @@ async function loadSnapshot() {
 }
 
 async function chooseRoot() {
+  clearSetupError();
   const selected = await open({
     directory: true,
     multiple: false,
@@ -485,6 +531,9 @@ async function chooseRoot() {
   });
 
   if (!selected) {
+    if (isSetupOverlayVisible()) {
+      setupChooseRootButton.focus();
+    }
     return;
   }
 
@@ -492,7 +541,7 @@ async function chooseRoot() {
     const snapshot = await invoke("set_notes_root", { path: selected });
     appState.root = snapshot.root;
     appState.notes = snapshot.notes;
-    rootBanner.classList.add("hidden");
+    updateNotesRootSetup();
     setStatus(`${appState.notes.length} notes in ${appState.root}`);
 
     if (appState.firstRun && !appState.welcomeCreated) {
@@ -503,7 +552,12 @@ async function chooseRoot() {
     await runSearch(searchInput.value);
     searchInput.focus();
   } catch (error) {
-    setStatus(String(error), true);
+    const message = String(error);
+    setStatus(message, true);
+    if (isSetupOverlayVisible()) {
+      showSetupError(message);
+      setupChooseRootButton.focus();
+    }
   }
 }
 
@@ -1123,12 +1177,20 @@ async function changeUiScale(delta) {
 }
 
 searchInput.addEventListener("input", () => {
+  if (isSetupOverlayVisible()) {
+    return;
+  }
+
   debounce("searchTimer", 15, () => {
     void runSearch(searchInput.value);
   });
 });
 
 searchInput.addEventListener("keydown", (event) => {
+  if (isSetupOverlayVisible()) {
+    return;
+  }
+
   if (event.key === "ArrowDown") {
     event.preventDefault();
     appState.selectedIndex = Math.min(appState.selectedIndex + 1, appState.results.length - 1);
@@ -1156,6 +1218,10 @@ searchInput.addEventListener("keydown", (event) => {
 });
 
 window.addEventListener("keydown", (event) => {
+  if (isSetupOverlayVisible()) {
+    return;
+  }
+
   const isCommandShortcut = event.metaKey || event.ctrlKey;
   const key = event.key.toLowerCase();
   const isFocusToggleShortcut = isCommandShortcut && !event.altKey && key === "f";
@@ -1208,6 +1274,9 @@ window.addEventListener("keydown", (event) => {
 });
 
 chooseRootButton.addEventListener("click", () => {
+  void chooseRoot();
+});
+setupChooseRootButton.addEventListener("click", () => {
   void chooseRoot();
 });
 
@@ -1278,4 +1347,6 @@ document.addEventListener("contextmenu", (event) => {
 await loadAppConfig();
 await loadSnapshot();
 updateWorkspaceState();
-searchInput.focus();
+if (!isSetupOverlayVisible()) {
+  searchInput.focus();
+}
