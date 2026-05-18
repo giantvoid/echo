@@ -89,6 +89,38 @@ body {
   overflow: hidden;
 }
 
+#app-loading {
+  background: var(--bg);
+  color: var(--text);
+  transition:
+    opacity 0.35s ease,
+    visibility 0.35s ease;
+}
+
+#app-loading .loading-brand {
+  color: var(--text);
+}
+
+#app-loading .loading-indicator {
+  border-color: var(--border);
+  border-top-color: var(--accent);
+}
+
+#app {
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+html.app-ready #app {
+  opacity: 1;
+}
+
+html.app-ready #app-loading {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 button,
 input {
   font: inherit;

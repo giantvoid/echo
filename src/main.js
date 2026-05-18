@@ -1344,9 +1344,42 @@ document.addEventListener("contextmenu", (event) => {
   event.preventDefault();
 });
 
+function markAppReady() {
+  const loader = document.querySelector("#app-loading");
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.documentElement.classList.add("app-ready");
+      if (!loader) {
+        return;
+      }
+
+      loader.setAttribute("aria-busy", "false");
+      let removed = false;
+      const removeLoader = () => {
+        if (removed) {
+          return;
+        }
+        removed = true;
+        loader.remove();
+      };
+      loader.addEventListener(
+        "transitionend",
+        (event) => {
+          if (event.target === loader && event.propertyName === "opacity") {
+            removeLoader();
+          }
+        },
+        { once: true },
+      );
+      window.setTimeout(removeLoader, 450);
+    });
+  });
+}
+
 await loadAppConfig();
 await loadSnapshot();
 updateWorkspaceState();
 if (!isSetupOverlayVisible()) {
   searchInput.focus();
 }
+markAppReady();

@@ -4,8 +4,62 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Echo</title>
+    <style>
+      html {
+        color-scheme: dark;
+        background: #111318;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      #app-loading {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.25rem;
+        background: #111318;
+        color: #eef1f6;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+      }
+      #app-loading .loading-brand {
+        margin: 0;
+        font-size: 1.35rem;
+        font-weight: 650;
+        letter-spacing: 0.04em;
+      }
+      #app-loading .loading-indicator {
+        width: 1.5rem;
+        height: 1.5rem;
+        border: 2px solid #2c313d;
+        border-top-color: #8ab4ff;
+        border-radius: 50%;
+        animation: echo-loading-spin 0.85s linear infinite;
+      }
+      @keyframes echo-loading-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      html:not(.app-ready) #app {
+        visibility: hidden;
+      }
+    </style>
   </head>
   <body>
+    <div id="app-loading" aria-live="polite" aria-busy="true">
+      <p class="loading-brand">Echo</p>
+      <div class="loading-indicator" aria-hidden="true"></div>
+    </div>
     <div id="app">
       <main class="workspace edit-mode no-note-selected">
         <aside class="results-pane" aria-label="Search results">
