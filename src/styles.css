@@ -13,6 +13,8 @@
   --app-font-size: 15px;
   --editor-font-size: 14.7px;
   --result-row-height: 29px;
+  --editor-padding-block: 1.75rem;
+  --editor-padding-inline: 2.5rem;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -428,7 +430,7 @@ button:hover {
 }
 
 .cm-content {
-  padding: 1.25rem;
+  padding: var(--editor-padding-block) var(--editor-padding-inline);
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: var(--editor-font-size);
   line-height: 1.55;

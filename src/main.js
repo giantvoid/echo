@@ -3,8 +3,8 @@ import "./styles.css";
 import { defaultKeymap, history, historyKeymap, indentLess, indentMore } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
-import { Compartment, EditorState } from "@codemirror/state";
-import { EditorView, keymap, lineNumbers } from "@codemirror/view";
+import { EditorState } from "@codemirror/state";
+import { EditorView, keymap } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -46,7 +46,6 @@ let rowHeight = 29;
 const minUiScale = -4;
 const maxUiScale = 8;
 const themes = ["dark", "light", "solarized", "hacker", "orange-hacker"];
-const lineNumberCompartment = new Compartment();
 const welcomeNoteContent = `# Welcome to Echo
 
 Echo is a fast Markdown notebook for writing, searching, and daily notes.
@@ -99,6 +98,10 @@ const editorTheme = EditorView.theme(
   {
     ".cm-content": {
       caretColor: "var(--accent)",
+      padding: "var(--editor-padding-block) var(--editor-padding-inline)",
+    },
+    ".cm-line": {
+      padding: "0",
     },
     "&.cm-focused .cm-cursor": {
       borderLeftColor: "var(--accent)",
@@ -109,14 +112,6 @@ const editorTheme = EditorView.theme(
     },
     ".cm-activeLine": {
       backgroundColor: "color-mix(in srgb, var(--panel-soft) 55%, transparent)",
-    },
-    ".cm-gutters": {
-      backgroundColor: "var(--bg)",
-      color: "color-mix(in srgb, var(--muted) 55%, transparent)",
-      borderRight: "1px solid color-mix(in srgb, var(--border) 55%, transparent)",
-    },
-    ".cm-activeLineGutter": {
-      backgroundColor: "color-mix(in srgb, var(--panel-soft) 35%, transparent)",
     },
   },
   { dark: true },
@@ -143,7 +138,6 @@ const editor = new EditorView({
   state: EditorState.create({
     doc: "",
     extensions: [
-      lineNumberCompartment.of(lineNumbers()),
       history(),
       markdown(),
       syntaxHighlighting(markdownHighlightStyle),
@@ -253,17 +247,11 @@ async function setFocusMode(enabled) {
   try {
     await appWindow.setFullscreen(enabled);
     document.documentElement.classList.toggle("focus-mode", enabled);
-    editor.dispatch({
-      effects: lineNumberCompartment.reconfigure(enabled ? [] : lineNumbers()),
-    });
     updateWorkspaceState();
   } catch (error) {
     appState.focusMode = previousFocusMode;
     appState.viewMode = previousViewMode;
     document.documentElement.classList.toggle("focus-mode", previousFocusMode);
-    editor.dispatch({
-      effects: lineNumberCompartment.reconfigure(previousFocusMode ? [] : lineNumbers()),
-    });
     updateWorkspaceState();
     setStatus(String(error), true);
   } finally {
