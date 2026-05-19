@@ -12,7 +12,7 @@
   --note-list-width: 300px;
   --app-font-size: 15px;
   --editor-font-size: 14.7px;
-  --result-row-height: 42px;
+  --result-row-height: 29px;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -322,10 +322,9 @@ button:hover {
   display: grid;
   align-content: center;
   height: var(--result-row-height);
-  padding: 0.25rem 0.75rem;
+  padding: 0.1rem 0.75rem;
   border: 0;
   border-radius: 0;
-  border-bottom: 1px solid var(--border);
   text-align: left;
   background: transparent;
 }
@@ -453,9 +452,13 @@ button:hover {
 }
 
 .cm-gutters {
-  background: var(--panel);
-  border-right: 1px solid var(--border);
-  color: var(--muted);
+  background: var(--bg);
+  border-right: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+  color: color-mix(in srgb, var(--muted) 55%, transparent);
+}
+
+.cm-activeLineGutter {
+  background: color-mix(in srgb, var(--panel-soft) 35%, transparent);
 }
 
 #preview {

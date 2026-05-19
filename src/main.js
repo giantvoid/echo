@@ -42,7 +42,7 @@ const calendarTodayButton = document.querySelector("#calendar-today");
 const calendarNextButton = document.querySelector("#calendar-next");
 const appWindow = getCurrentWindow();
 
-let rowHeight = 42;
+let rowHeight = 29;
 const minUiScale = -4;
 const maxUiScale = 8;
 const themes = ["dark", "light", "solarized", "hacker", "orange-hacker"];
@@ -155,6 +155,15 @@ const editor = new EditorView({
         schedulePreview();
       }),
       EditorView.domEventHandlers({
+        keydown: (event, view) => {
+          if (event.key === "Tab" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+            event.preventDefault();
+            const run = event.shiftKey ? indentLess : indentMore;
+            run(view);
+            return true;
+          }
+          return false;
+        },
         paste: (event, view) => {
           return handlePaste(event, view);
         },
@@ -1121,7 +1130,7 @@ async function savePastedImageSource(imageSource) {
 
 function applyUiScale(uiScale) {
   appState.uiScale = Math.min(maxUiScale, Math.max(minUiScale, uiScale));
-  rowHeight = Math.max(32, 42 + appState.uiScale);
+  rowHeight = Math.max(22, 29 + appState.uiScale);
   document.documentElement.style.setProperty("--app-font-size", `${15 + appState.uiScale}px`);
   document.documentElement.style.setProperty("--editor-font-size", `${14.7 + appState.uiScale}px`);
   document.documentElement.style.setProperty("--result-row-height", `${rowHeight}px`);
