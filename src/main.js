@@ -74,7 +74,7 @@ const appState = {
   root: null,
   notes: [],
   results: [],
-  selectedIndex: 0,
+  selectedIndex: -1,
   currentPath: null,
   loadingDocument: false,
   searchTimer: null,
@@ -221,6 +221,7 @@ function setEditorContent(content) {
 
 function clearCurrentNote() {
   appState.currentPath = null;
+  appState.selectedIndex = -1;
   appState.viewMode = "edit";
   setEditorContent("");
   preview.innerHTML = "";
@@ -585,16 +586,26 @@ async function openWelcomeNote() {
   setStatus(`${result.created ? "Created" : "Opened"} ${appState.currentPath}`);
 }
 
+function syncListSelectionIndex() {
+  if (!appState.currentPath) {
+    appState.selectedIndex = -1;
+    return;
+  }
+
+  appState.selectedIndex = appState.results.findIndex((note) => note.path === appState.currentPath);
+}
+
 async function runSearch(query) {
   if (!appState.root) {
     appState.results = [];
+    syncListSelectionIndex();
     renderResults();
     return;
   }
 
   try {
     appState.results = await invoke("search_notes", { query });
-    appState.selectedIndex = 0;
+    syncListSelectionIndex();
     renderResults();
   } catch (error) {
     setStatus(String(error), true);
@@ -659,8 +670,10 @@ function renderVisibleRows() {
     row.type = "button";
     row.className = "result-row";
     row.style.top = `${index * rowHeight}px`;
-    row.classList.toggle("selected", note.path === appState.currentPath);
-    row.classList.toggle("nav-selected", index === appState.selectedIndex);
+    const isOpen = note.path === appState.currentPath;
+    const isNavFocus = index === appState.selectedIndex && !isOpen;
+    row.classList.toggle("selected", isOpen);
+    row.classList.toggle("nav-selected", isNavFocus);
     row.innerHTML = `
       <span class="result-title"></span>
     `;
@@ -678,6 +691,7 @@ async function openNote(path) {
   try {
     const opened = await invoke("open_note", { path });
     appState.currentPath = opened.note.path;
+    syncListSelectionIndex();
     setEditorContent(opened.content);
     searchInput.value = opened.note.path.replace(/\.md$/i, "");
     renderResults();
@@ -1203,12 +1217,13 @@ searchInput.addEventListener("keydown", (event) => {
     renderVisibleRows();
   } else if (event.key === "ArrowUp") {
     event.preventDefault();
-    appState.selectedIndex = Math.max(appState.selectedIndex - 1, 0);
+    appState.selectedIndex = Math.max(appState.selectedIndex - 1, -1);
     scrollNavSelectedIntoView();
     renderVisibleRows();
   } else if (event.key === "Enter") {
     event.preventDefault();
-    const navNote = appState.results[appState.selectedIndex];
+    const navNote =
+      appState.selectedIndex >= 0 ? appState.results[appState.selectedIndex] : null;
     if (navNote) {
       void openNote(navNote.path);
     } else {

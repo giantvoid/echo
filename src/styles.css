@@ -331,20 +331,23 @@ button:hover {
   background: transparent;
 }
 
-.result-row:hover,
-.result-row.selected {
+.result-row:hover {
   background: var(--panel-soft);
 }
 
-.result-row.nav-selected {
+.result-row.selected {
   background: var(--accent, var(--panel-soft));
   outline: 2px solid var(--accent, currentColor);
   outline-offset: -2px;
   color: var(--bg);
 }
 
-.result-row.nav-selected .result-title {
+.result-row.selected .result-title {
   color: var(--bg);
+}
+
+.result-row.nav-selected {
+  background: var(--panel-soft);
 }
 
 .result-title {
