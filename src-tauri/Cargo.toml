@@ -1,6 +1,6 @@
 [package]
 name = "echoedit"
-version = "0.1.1"
+version = "0.1.2"
 description = "A high-performance Markdown note-taking app."
 authors = ["Andriy Makarevych"]
 license = "MIT"
