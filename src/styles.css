@@ -451,16 +451,6 @@ button:hover {
   background: color-mix(in srgb, var(--panel-soft) 55%, transparent);
 }
 
-.cm-gutters {
-  background: var(--bg);
-  border-right: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
-  color: color-mix(in srgb, var(--muted) 55%, transparent);
-}
-
-.cm-activeLineGutter {
-  background: color-mix(in srgb, var(--panel-soft) 35%, transparent);
-}
-
 #preview {
   height: 100%;
   padding: 1.25rem 1.5rem;

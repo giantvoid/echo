@@ -110,6 +110,14 @@ const editorTheme = EditorView.theme(
     ".cm-activeLine": {
       backgroundColor: "color-mix(in srgb, var(--panel-soft) 55%, transparent)",
     },
+    ".cm-gutters": {
+      backgroundColor: "var(--bg)",
+      color: "color-mix(in srgb, var(--muted) 55%, transparent)",
+      borderRight: "1px solid color-mix(in srgb, var(--border) 55%, transparent)",
+    },
+    ".cm-activeLineGutter": {
+      backgroundColor: "color-mix(in srgb, var(--panel-soft) 35%, transparent)",
+    },
   },
   { dark: true },
 );
