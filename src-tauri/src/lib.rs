@@ -17,8 +17,19 @@ use std::{
     sync::{Arc, Mutex},
     time::UNIX_EPOCH,
 };
+use sublime_fuzzy::FuzzySearch;
 use tauri::{AppHandle, Emitter, Manager, State};
 use walkdir::WalkDir;
+
+const SEARCH_TIER_TITLE: i64 = 100_000;
+const SEARCH_TIER_PATH: i64 = 10_000;
+const SEARCH_TIER_SNIPPET: i64 = 1_000;
+const SEARCH_MIN_NOTE_SCORE: i64 = 1_000;
+const SEARCH_LITERAL_EXACT: i64 = 50_000;
+const SEARCH_LITERAL_PREFIX: i64 = 40_000;
+const SEARCH_LITERAL_CONTAINS: i64 = 30_000;
+const SEARCH_FUZZY_MIN_ABSOLUTE: isize = 50;
+const SEARCH_EXCERPT_MAX_CHARS: usize = 500;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -261,10 +272,7 @@ fn search_notes_in_snapshot(query: &str, notes: Vec<NoteMetadata>) -> Vec<NoteMe
 
     let mut scored = notes
         .into_iter()
-        .filter_map(|note| {
-            let haystack = format!("{} {} {}", note.path, note.title, note.snippet);
-            fuzzy_score(normalized_query, &haystack).map(|score| (score, note))
-        })
+        .filter_map(|note| note_search_score(normalized_query, &note).map(|score| (score, note)))
         .collect::<Vec<_>>();
 
     scored.sort_by(|(left_score, left_note), (right_score, right_note)| {
@@ -630,11 +638,7 @@ fn find_openable_match(query: &str, state: &AppState) -> Result<Option<OpenNote>
     let snapshot = state.snapshot()?;
     let results = search_notes_in_snapshot(query, snapshot.notes);
     if let Some(note) = results.first() {
-        let normalized = query.to_lowercase();
-        let exactish = note.path.to_lowercase() == normalized
-            || note.title.to_lowercase() == normalized
-            || note.path.to_lowercase() == format!("{normalized}.md");
-        if exactish || fuzzy_score(query, &note.path).unwrap_or(0) > 80 {
+        if note_opens_from_search_query(query.trim(), note) {
             return open_note_from_path(&note.path, state).map(Some);
         }
     }
@@ -687,14 +691,7 @@ fn metadata_for_file(root: &Path, path: &Path) -> Result<NoteMetadata, String> {
         .and_then(|time| time.duration_since(UNIX_EPOCH).ok())
         .map(|duration| duration.as_secs());
     let content = fs::read_to_string(path).unwrap_or_default();
-    let snippet = content
-        .lines()
-        .map(str::trim)
-        .find(|line| !line.is_empty())
-        .unwrap_or("")
-        .chars()
-        .take(180)
-        .collect();
+    let snippet = build_search_excerpt(&content);
 
     Ok(NoteMetadata {
         path: relative_path,
@@ -811,36 +808,81 @@ fn normalize_extension(extension: Option<&str>) -> String {
         .unwrap_or_else(|| "png".to_string())
 }
 
-fn fuzzy_score(query: &str, text: &str) -> Option<i64> {
-    let query = query.to_lowercase();
-    let text = text.to_lowercase();
-    if query.is_empty() {
-        return Some(0);
-    }
-    if text.contains(&query) {
-        return Some(1000 - text.find(&query).unwrap_or(0) as i64);
-    }
-
-    let mut score = 0;
-    let mut query_chars = query.chars();
-    let mut current = query_chars.next()?;
-    let mut streak = 0;
-    for text_char in text.chars() {
-        if text_char == current {
-            streak += 1;
-            score += 10 + streak * 3;
-            if let Some(next) = query_chars.next() {
-                current = next;
-            } else {
-                return Some(score);
-            }
-        } else {
-            streak = 0;
-            score -= 1;
+fn build_search_excerpt(content: &str) -> String {
+    let mut excerpt = String::new();
+    for line in content.lines().map(str::trim).filter(|line| !line.is_empty()) {
+        if !excerpt.is_empty() {
+            excerpt.push(' ');
+        }
+        excerpt.push_str(line);
+        if excerpt.chars().count() >= SEARCH_EXCERPT_MAX_CHARS {
+            break;
         }
     }
+    excerpt.chars().take(SEARCH_EXCERPT_MAX_CHARS).collect()
+}
 
-    None
+fn field_search_score(query: &str, text: &str, tier_boost: i64) -> Option<i64> {
+    if query.is_empty() {
+        return Some(tier_boost);
+    }
+
+    let text_lower = text.to_lowercase();
+    let query_lower = query.to_lowercase();
+
+    if text_lower == query_lower {
+        return Some(tier_boost + SEARCH_LITERAL_EXACT);
+    }
+    if text_lower.starts_with(&query_lower) {
+        return Some(tier_boost + SEARCH_LITERAL_PREFIX);
+    }
+    if let Some(position) = text_lower.find(&query_lower) {
+        return Some(tier_boost + SEARCH_LITERAL_CONTAINS - position as i64);
+    }
+
+    let min_fuzzy = std::cmp::max(
+        SEARCH_FUZZY_MIN_ABSOLUTE,
+        query.chars().count() as isize * 8,
+    );
+    let matched = FuzzySearch::new(query, text).best_match()?;
+    if matched.score() < min_fuzzy {
+        return None;
+    }
+
+    Some(tier_boost + matched.score() as i64)
+}
+
+fn note_search_score(query: &str, note: &NoteMetadata) -> Option<i64> {
+    [
+        field_search_score(query, &note.title, SEARCH_TIER_TITLE),
+        field_search_score(query, &note.path, SEARCH_TIER_PATH),
+        field_search_score(query, &note.snippet, SEARCH_TIER_SNIPPET),
+    ]
+    .into_iter()
+    .flatten()
+    .max()
+    .filter(|score| *score >= SEARCH_MIN_NOTE_SCORE)
+}
+
+fn note_opens_from_search_query(query: &str, note: &NoteMetadata) -> bool {
+    let normalized = query.to_lowercase();
+    if normalized.is_empty() {
+        return false;
+    }
+
+    let path_lower = note.path.to_lowercase();
+    let title_lower = note.title.to_lowercase();
+    let exactish = title_lower == normalized
+        || path_lower == normalized
+        || path_lower == format!("{normalized}.md")
+        || path_lower.ends_with(&format!("/{normalized}.md"));
+
+    if exactish {
+        return true;
+    }
+
+    note_search_score(query, note)
+        .is_some_and(|score| score >= SEARCH_TIER_PATH + SEARCH_LITERAL_CONTAINS)
 }
 
 const CONFIG_DIR_NAME: &str = "echo";
@@ -882,6 +924,84 @@ fn save_config(config: &AppConfig) -> Result<(), String> {
     let content = serde_json::to_string_pretty(&config)
         .map_err(|error| format!("Could not serialize config: {error}"))?;
     fs::write(path, content).map_err(|error| format!("Could not save config: {error}"))
+}
+
+#[cfg(test)]
+mod search_tests {
+    use super::*;
+
+    fn note(path: &str, title: &str, snippet: &str) -> NoteMetadata {
+        NoteMetadata {
+            path: path.to_string(),
+            title: title.to_string(),
+            snippet: snippet.to_string(),
+            modified: Some(1),
+            size: 1,
+        }
+    }
+
+    #[test]
+    fn empty_query_returns_all_notes_sorted() {
+        let notes = vec![
+            note("b.md", "Bravo", ""),
+            note("a.md", "Alpha", ""),
+        ];
+        let results = search_notes_in_snapshot("", notes);
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].path, "a.md");
+    }
+
+    #[test]
+    fn title_match_ranks_above_body_only_match() {
+        let notes = vec![
+            note("body.md", "Other", "contains meeting notes from last week"),
+            note("title.md", "Meeting", "unrelated summary text"),
+        ];
+        let results = search_notes_in_snapshot("meeting", notes);
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].path, "title.md");
+    }
+
+    #[test]
+    fn search_is_case_insensitive() {
+        let notes = vec![note("note.md", "Meeting", "")];
+        let results = search_notes_in_snapshot("MEET", notes);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Meeting");
+    }
+
+    #[test]
+    fn unrelated_subsequence_match_is_excluded() {
+        let notes = vec![note(
+            "unrelated.md",
+            "Zebra",
+            "qwerty uiop asdf ghjkl",
+        )];
+        let results = search_notes_in_snapshot("daily", notes);
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn title_prefix_scores_higher_than_snippet_contains() {
+        let title_score = field_search_score("meet", "Meeting", SEARCH_TIER_TITLE).unwrap();
+        let snippet_score =
+            field_search_score("meet", "last week meeting notes", SEARCH_TIER_SNIPPET).unwrap();
+        assert!(title_score > snippet_score);
+    }
+
+    #[test]
+    fn build_search_excerpt_collapses_multiple_lines() {
+        let content = "# Title\n\nFirst paragraph line.\n\nSecond paragraph line.";
+        let excerpt = build_search_excerpt(content);
+        assert!(excerpt.contains("First paragraph"));
+        assert!(excerpt.contains("Second paragraph"));
+    }
+
+    #[test]
+    fn note_opens_on_exact_title_match() {
+        let target = note("notes/meeting.md", "Meeting", "");
+        assert!(note_opens_from_search_query("Meeting", &target));
+    }
 }
 
 pub fn run() {
