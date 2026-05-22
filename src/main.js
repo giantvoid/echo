@@ -3,8 +3,14 @@ import "./styles.css";
 import { defaultKeymap, history, historyKeymap, indentLess, indentMore } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
-import { EditorState } from "@codemirror/state";
-import { EditorView, keymap } from "@codemirror/view";
+import {
+  EditorSelection,
+  EditorState,
+  RangeSetBuilder,
+  StateEffect,
+  StateField,
+} from "@codemirror/state";
+import { Decoration, EditorView, keymap } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -16,6 +22,9 @@ const chooseRootButton = document.querySelector("#choose-root");
 const rootBanner = document.querySelector("#root-banner");
 const resultsList = document.querySelector("#results-list");
 const workspace = document.querySelector(".workspace");
+const editorFindBar = document.querySelector("#editor-find");
+const editorFindInput = document.querySelector("#editor-find-input");
+const editorFindCount = document.querySelector("#editor-find-count");
 const emptyState = document.querySelector("#empty-state");
 const preview = document.querySelector("#preview");
 const statusBar = document.querySelector("#status-bar");
@@ -58,6 +67,7 @@ Echo is a fast Markdown notebook for writing, searching, and daily notes.
 - Use the calendar to jump to any daily note; days with daily notes are marked.
 - Use Ctrl/Cmd+E to toggle Markdown preview.
 - Use Ctrl/Cmd+T to switch themes: dark, light, solarized, hacker, and orange hacker.
+- Use Ctrl/Cmd+F to find text in the open note.
 - Use Ctrl/Cmd+. to toggle focus mode when you want only the editor.
 - Use Ctrl/Cmd++ and Ctrl/Cmd+- to adjust the UI size.
 - Paste images directly into an open note to attach them.
@@ -113,6 +123,10 @@ const editorTheme = EditorView.theme(
     ".cm-activeLine": {
       backgroundColor: "color-mix(in srgb, var(--panel-soft) 55%, transparent)",
     },
+    ".cm-find-match": {
+      backgroundColor: "color-mix(in srgb, var(--accent-strong) 42%, transparent)",
+      outline: "1px solid color-mix(in srgb, var(--accent) 65%, transparent)",
+    },
   },
   { dark: true },
 );
@@ -133,6 +147,202 @@ const markdownHighlightStyle = HighlightStyle.define([
   { tag: tags.processingInstruction, color: "var(--muted)" },
 ]);
 
+const editorFindState = {
+  open: false,
+  query: "",
+  matches: [],
+  matchIndex: 0,
+};
+
+const setEditorFindMatch = StateEffect.define();
+
+const findMatchMark = Decoration.mark({ class: "cm-find-match" });
+
+const editorFindHighlight = StateField.define({
+  create() {
+    return Decoration.none;
+  },
+  update(decorations, transaction) {
+    for (const effect of transaction.effects) {
+      if (effect.is(setEditorFindMatch)) {
+        const match = effect.value;
+        if (!match) {
+          return Decoration.none;
+        }
+        const builder = new RangeSetBuilder();
+        builder.add(match.from, match.to, findMatchMark);
+        return builder.finish();
+      }
+    }
+    return decorations.map(transaction.changes);
+  },
+  provide: (field) => EditorView.decorations.from(field),
+});
+
+function collectEditorFindMatches(query) {
+  if (!query) {
+    return [];
+  }
+
+  const text = editor.state.doc.toString();
+  const needle = query.toLowerCase();
+  const haystack = text.toLowerCase();
+  const matches = [];
+  let from = 0;
+
+  while (from <= haystack.length - needle.length) {
+    const index = haystack.indexOf(needle, from);
+    if (index === -1) {
+      break;
+    }
+    matches.push({ from: index, to: index + query.length });
+    from = index + needle.length;
+  }
+
+  return matches;
+}
+
+function updateEditorFindCount() {
+  const total = editorFindState.matches.length;
+  if (!editorFindState.query) {
+    editorFindCount.textContent = "";
+    return;
+  }
+  if (total === 0) {
+    editorFindCount.textContent = "No matches";
+    return;
+  }
+  editorFindCount.textContent = `${editorFindState.matchIndex + 1} of ${total} matches`;
+}
+
+function setEditorFindHighlight(match) {
+  editor.dispatch({
+    effects: setEditorFindMatch.of(match),
+  });
+}
+
+function goToEditorFindMatch(index, { scroll = true } = {}) {
+  const total = editorFindState.matches.length;
+  if (total === 0) {
+    editorFindState.matchIndex = 0;
+    setEditorFindHighlight(null);
+    updateEditorFindCount();
+    return;
+  }
+
+  const wrappedIndex = ((index % total) + total) % total;
+  editorFindState.matchIndex = wrappedIndex;
+  const match = editorFindState.matches[wrappedIndex];
+  setEditorFindHighlight(match);
+  editor.dispatch({
+    selection: EditorSelection.single(match.from, match.to),
+    scrollIntoView: scroll,
+  });
+  updateEditorFindCount();
+}
+
+function refreshEditorFind({ keepIndex = false } = {}) {
+  editorFindState.query = editorFindInput.value;
+  editorFindState.matches = collectEditorFindMatches(editorFindState.query);
+
+  if (!editorFindState.query) {
+    editorFindState.matchIndex = 0;
+    setEditorFindHighlight(null);
+    updateEditorFindCount();
+    return;
+  }
+
+  if (editorFindState.matches.length === 0) {
+    editorFindState.matchIndex = 0;
+    setEditorFindHighlight(null);
+    updateEditorFindCount();
+    return;
+  }
+
+  let nextIndex = 0;
+  if (keepIndex && editorFindState.matchIndex < editorFindState.matches.length) {
+    nextIndex = editorFindState.matchIndex;
+  } else {
+    const cursorPos = editor.state.selection.main.from;
+    nextIndex = editorFindState.matches.findIndex((match) => match.from >= cursorPos);
+    if (nextIndex === -1) {
+      nextIndex = 0;
+    }
+  }
+
+  goToEditorFindMatch(nextIndex);
+}
+
+function syncEditorFindMatches() {
+  editorFindState.query = editorFindInput.value;
+  editorFindState.matches = collectEditorFindMatches(editorFindState.query);
+  if (editorFindState.matches.length === 0) {
+    editorFindState.matchIndex = 0;
+    setEditorFindHighlight(null);
+    updateEditorFindCount();
+    return false;
+  }
+  return true;
+}
+
+function findNextEditorMatch() {
+  if (!editorFindState.open) {
+    return;
+  }
+  if (!syncEditorFindMatches()) {
+    return;
+  }
+  goToEditorFindMatch(editorFindState.matchIndex + 1);
+}
+
+function findPreviousEditorMatch() {
+  if (!editorFindState.open) {
+    return;
+  }
+  if (!syncEditorFindMatches()) {
+    return;
+  }
+  goToEditorFindMatch(editorFindState.matchIndex - 1);
+}
+
+function isEditorFindOpen() {
+  return editorFindState.open;
+}
+
+function canUseEditorFind() {
+  return Boolean(appState.currentPath) && appState.viewMode === "edit" && !isSetupOverlayVisible();
+}
+
+function closeEditorFind() {
+  if (!editorFindState.open) {
+    return;
+  }
+
+  editorFindState.open = false;
+  editorFindState.query = "";
+  editorFindState.matches = [];
+  editorFindState.matchIndex = 0;
+  editorFindBar.classList.add("hidden");
+  editorFindBar.setAttribute("aria-hidden", "true");
+  editorFindInput.value = "";
+  editorFindCount.textContent = "";
+  setEditorFindHighlight(null);
+  editor.focus();
+}
+
+function openEditorFind() {
+  if (!canUseEditorFind()) {
+    return;
+  }
+
+  editorFindState.open = true;
+  editorFindBar.classList.remove("hidden");
+  editorFindBar.setAttribute("aria-hidden", "false");
+  editorFindInput.focus();
+  editorFindInput.select();
+  refreshEditorFind();
+}
+
 const editor = new EditorView({
   parent: document.querySelector("#editor"),
   state: EditorState.create({
@@ -149,7 +359,11 @@ const editor = new EditorView({
       ]),
       EditorView.lineWrapping,
       editorTheme,
+      editorFindHighlight,
       EditorView.updateListener.of((update) => {
+        if (editorFindState.open && update.docChanged && !appState.loadingDocument) {
+          refreshEditorFind({ keepIndex: true });
+        }
         if (!update.docChanged || appState.loadingDocument) {
           return;
         }
@@ -189,6 +403,10 @@ async function togglePreviewMode() {
     return;
   }
 
+  if (appState.viewMode === "edit") {
+    closeEditorFind();
+  }
+
   appState.viewMode = appState.viewMode === "preview" ? "edit" : "preview";
   if (appState.viewMode === "preview") {
     await updatePreview();
@@ -220,6 +438,7 @@ function setEditorContent(content) {
 }
 
 function clearCurrentNote() {
+  closeEditorFind();
   appState.currentPath = null;
   appState.selectedIndex = -1;
   appState.viewMode = "edit";
@@ -1245,15 +1464,24 @@ window.addEventListener("keydown", (event) => {
   const isCommandShortcut = event.metaKey || event.ctrlKey;
   const key = event.key.toLowerCase();
   const isFocusToggleShortcut = isCommandShortcut && !event.altKey && event.key === ".";
-  const appShortcutKeys = new Set(["l", "k", "m", "e", "t", "d", "+", "=", "-", "."]);
+  const appShortcutKeys = new Set(["l", "k", "m", "e", "f", "t", "d", "+", "=", "-", "."]);
 
   if (appState.focusMode) {
     if (isFocusToggleShortcut) {
       event.preventDefault();
       void toggleFocusMode();
+    } else if (isCommandShortcut && key === "f") {
+      event.preventDefault();
+      openEditorFind();
     } else if (isCommandShortcut && appShortcutKeys.has(key)) {
       event.preventDefault();
     }
+    return;
+  }
+
+  if (isEditorFindOpen() && event.key === "Escape") {
+    event.preventDefault();
+    closeEditorFind();
     return;
   }
 
@@ -1270,6 +1498,9 @@ window.addEventListener("keydown", (event) => {
   } else if (isCommandShortcut && key === "e") {
     event.preventDefault();
     void togglePreviewMode();
+  } else if (isCommandShortcut && key === "f") {
+    event.preventDefault();
+    openEditorFind();
   } else if (isCommandShortcut && key === "t") {
     event.preventDefault();
     void cycleTheme();
@@ -1286,10 +1517,30 @@ window.addEventListener("keydown", (event) => {
     event.preventDefault();
     void changeUiScale(-1);
   } else if (event.key === "Escape") {
+    closeEditorFind();
     hideAppInfoOverlay();
     hideMarkdownInfoOverlay();
     hideImageOverlay();
     hideAllContextMenus();
+  }
+});
+
+editorFindInput.addEventListener("input", () => {
+  refreshEditorFind();
+});
+
+editorFindInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    if (event.shiftKey) {
+      findPreviousEditorMatch();
+    } else {
+      findNextEditorMatch();
+    }
+  } else if (event.key === "Escape") {
+    event.preventDefault();
+    event.stopPropagation();
+    closeEditorFind();
   }
 });
 

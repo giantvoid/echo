@@ -100,6 +100,23 @@
         <section class="content-pane" aria-label="Note content">
           <div id="empty-state" class="empty-state">Create or select note to start editing</div>
           <div class="editor-pane" aria-label="Markdown editor">
+            <div
+              id="editor-find"
+              class="editor-find hidden"
+              role="search"
+              aria-label="Find in note"
+              aria-hidden="true"
+            >
+              <input
+                id="editor-find-input"
+                type="search"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Find in note..."
+                aria-label="Find in note"
+              />
+              <span id="editor-find-count" class="editor-find-count" aria-live="polite"></span>
+            </div>
             <div id="editor"></div>
           </div>
           <div id="preview-pane" class="preview-pane" aria-label="Markdown preview">
@@ -164,6 +181,10 @@
               <dd>Open today's daily note</dd>
             </div>
             <div>
+              <dt><kbd>Ctrl/Cmd</kbd> + <kbd>F</kbd></dt>
+              <dd>Find in note</dd>
+            </div>
+            <div>
               <dt><kbd>Ctrl/Cmd</kbd> + <kbd>E</kbd></dt>
               <dd>Toggle preview</dd>
             </div>
@@ -185,7 +206,7 @@
             </div>
             <div>
               <dt><kbd>Escape</kbd></dt>
-              <dd>Close overlays and context menus</dd>
+              <dd>Close find bar, overlays, and context menus</dd>
             </div>
           </dl>
         </section>

@@ -395,6 +395,52 @@ button:hover {
   overflow: hidden;
 }
 
+.editor-find {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.editor-find.hidden {
+  display: none;
+}
+
+.editor-find input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+  color: var(--text);
+  background: var(--bg);
+  outline: none;
+}
+
+.editor-find input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.editor-find input::placeholder {
+  color: var(--muted);
+}
+
+.editor-find-count {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
 .workspace.no-note-selected .editor-pane,
 .workspace.no-note-selected .preview-pane,
 .workspace.edit-mode .preview-pane,
@@ -454,6 +500,12 @@ button:hover {
 
 .cm-activeLine {
   background: color-mix(in srgb, var(--panel-soft) 55%, transparent);
+}
+
+.cm-find-match {
+  background: color-mix(in srgb, var(--accent-strong) 42%, transparent) !important;
+  border-radius: 2px;
+  outline: 1px solid color-mix(in srgb, var(--accent) 65%, transparent);
 }
 
 #preview {
