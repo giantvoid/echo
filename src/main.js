@@ -58,7 +58,7 @@ Echo is a fast Markdown notebook for writing, searching, and daily notes.
 - Use the calendar to jump to any daily note; days with daily notes are marked.
 - Use Ctrl/Cmd+E to toggle Markdown preview.
 - Use Ctrl/Cmd+T to switch themes: dark, light, solarized, hacker, and orange hacker.
-- Use Ctrl/Cmd+F to toggle focus mode when you want only the editor.
+- Use Ctrl/Cmd+. to toggle focus mode when you want only the editor.
 - Use Ctrl/Cmd++ and Ctrl/Cmd+- to adjust the UI size.
 - Paste images directly into an open note to attach them.
 - Use Ctrl/Cmd+K anytime to see shortcuts.
@@ -1244,8 +1244,8 @@ window.addEventListener("keydown", (event) => {
 
   const isCommandShortcut = event.metaKey || event.ctrlKey;
   const key = event.key.toLowerCase();
-  const isFocusToggleShortcut = isCommandShortcut && !event.altKey && key === "f";
-  const appShortcutKeys = new Set(["l", "k", "m", "e", "t", "d", "+", "=", "-", "f"]);
+  const isFocusToggleShortcut = isCommandShortcut && !event.altKey && event.key === ".";
+  const appShortcutKeys = new Set(["l", "k", "m", "e", "t", "d", "+", "=", "-", "."]);
 
   if (appState.focusMode) {
     if (isFocusToggleShortcut) {
