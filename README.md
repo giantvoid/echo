@@ -39,7 +39,10 @@ Echo gets out of your way so you can think clearly and do your **real work**.
 
 ## Download
 
-Coming soon at [echoedit.app](https://echoedit.app)
+**Latest version (v0.1.2)**
+
+- **Official website**: [echoedit.app](https://echoedit.app) (recommended)
+- **GitHub Releases**: [v0.1.2](https://github.com/giantvoid/echo/releases/latest)
 
 ## Tech Stack
 
