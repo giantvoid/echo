@@ -1,5 +1,5 @@
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine};
-use chrono::Utc;
+use chrono::{DateTime, Local, Utc};
 use image::{DynamicImage, ImageFormat, RgbaImage};
 use notify::{
     event::{EventKind, ModifyKind},
@@ -448,6 +448,40 @@ fn create_or_open_note(
         fs::write(&note_path, "").map_err(|error| format!("Could not create note: {error}"))?;
     }
 
+    state.refresh_index()?;
+    Ok(CreateOrOpenResult {
+        created: true,
+        note: open_note_from_path(&relative_path, &state)?,
+    })
+}
+
+fn quick_note_stem(now: DateTime<Local>) -> String {
+    now.format("QN %Y-%m-%d %H-%M").to_string()
+}
+
+fn unique_quick_note_path(root: &Path, stem: &str) -> Result<String, String> {
+    let mut candidate = format!("{stem}.md");
+    if !resolve_note_path(root, &candidate)?.exists() {
+        return Ok(candidate);
+    }
+
+    let mut suffix = 2;
+    loop {
+        candidate = format!("{stem} ({suffix}).md");
+        if !resolve_note_path(root, &candidate)?.exists() {
+            return Ok(candidate);
+        }
+        suffix += 1;
+    }
+}
+
+#[tauri::command]
+fn create_quick_note(state: State<'_, AppState>) -> Result<CreateOrOpenResult, String> {
+    let root = state.root()?;
+    let stem = quick_note_stem(Local::now());
+    let relative_path = unique_quick_note_path(&root, &stem)?;
+    let note_path = resolve_note_path(&root, &relative_path)?;
+    fs::write(&note_path, "").map_err(|error| format!("Could not create note: {error}"))?;
     state.refresh_index()?;
     Ok(CreateOrOpenResult {
         created: true,
@@ -1004,6 +1038,53 @@ mod search_tests {
     }
 }
 
+#[cfg(test)]
+mod quick_note_tests {
+    use super::*;
+    use chrono::TimeZone;
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_root() -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock should be after unix epoch")
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("echo-quick-note-{nanos}"));
+        fs::create_dir_all(&path).expect("temp root should be created");
+        path
+    }
+
+    #[test]
+    fn quick_note_stem_uses_local_format_without_colons() {
+        let now = Local
+            .with_ymd_and_hms(2026, 5, 22, 14, 30, 0)
+            .single()
+            .expect("valid local datetime");
+        assert_eq!(quick_note_stem(now), "QN 2026-05-22 14-30");
+    }
+
+    #[test]
+    fn unique_quick_note_path_is_top_level() {
+        let root = temp_root();
+        let path = unique_quick_note_path(&root, "QN 2026-05-22 14-30").expect("path");
+        assert_eq!(path, "QN 2026-05-22 14-30.md");
+        assert!(!path.contains('/'));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn unique_quick_note_path_adds_suffix_on_collision() {
+        let root = temp_root();
+        let stem = "QN 2026-05-22 14-30";
+        let first = unique_quick_note_path(&root, stem).expect("first path");
+        fs::write(root.join(&first), "").expect("first note");
+        let second = unique_quick_note_path(&root, stem).expect("second path");
+        assert_eq!(second, "QN 2026-05-22 14-30 (2).md");
+        let _ = fs::remove_dir_all(root);
+    }
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -1029,6 +1110,7 @@ pub fn run() {
             delete_note,
             rename_note,
             create_or_open_note,
+            create_quick_note,
             render_markdown,
             process_image_paste,
             process_image_paste_base64,

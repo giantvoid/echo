@@ -67,6 +67,7 @@ Echo is a fast Markdown notebook for writing, searching, and daily notes.
 - Use the calendar to jump to any daily note; days with daily notes are marked.
 - Use Ctrl/Cmd+E to toggle Markdown preview.
 - Use Ctrl/Cmd+T to switch themes: dark, light, solarized, hacker, and orange hacker.
+- Use Ctrl/Cmd+Q to create a quick note with a timestamped title.
 - Use Ctrl/Cmd+F to find text in the open note.
 - Use Ctrl/Cmd+. to toggle focus mode when you want only the editor.
 - Use Ctrl/Cmd++ and Ctrl/Cmd+- to adjust the UI size.
@@ -943,6 +944,36 @@ async function createOrOpenFromSearch() {
   }
 }
 
+async function createQuickNote() {
+  if (!appState.root || isSetupOverlayVisible()) {
+    return;
+  }
+
+  closeEditorFind();
+  if (appState.viewMode === "preview") {
+    appState.viewMode = "edit";
+    updateWorkspaceState();
+  }
+
+  try {
+    searchInput.value = "";
+    const result = await invoke("create_quick_note");
+    appState.currentPath = result.note.note.path;
+    setEditorContent("");
+    appState.viewMode = "edit";
+    await loadSnapshot();
+    syncListSelectionIndex();
+    scrollCurrentResultIntoView();
+    resultsList.scrollTop = 0;
+    updateWorkspaceState();
+    editor.focus();
+    setStatus(`Created ${result.note.note.title}`);
+  } catch (error) {
+    appState.loadingDocument = false;
+    setStatus(String(error), true);
+  }
+}
+
 async function createOrOpenNote(query) {
   try {
     const result = await invoke("create_or_open_note", { query });
@@ -1464,7 +1495,7 @@ window.addEventListener("keydown", (event) => {
   const isCommandShortcut = event.metaKey || event.ctrlKey;
   const key = event.key.toLowerCase();
   const isFocusToggleShortcut = isCommandShortcut && !event.altKey && event.key === ".";
-  const appShortcutKeys = new Set(["l", "k", "m", "e", "f", "t", "d", "+", "=", "-", "."]);
+  const appShortcutKeys = new Set(["l", "k", "m", "e", "f", "q", "t", "d", "+", "=", "-", "."]);
 
   if (appState.focusMode) {
     if (isFocusToggleShortcut) {
@@ -1473,6 +1504,9 @@ window.addEventListener("keydown", (event) => {
     } else if (isCommandShortcut && key === "f") {
       event.preventDefault();
       openEditorFind();
+    } else if (isCommandShortcut && key === "q") {
+      event.preventDefault();
+      void createQuickNote();
     } else if (isCommandShortcut && appShortcutKeys.has(key)) {
       event.preventDefault();
     }
@@ -1501,6 +1535,9 @@ window.addEventListener("keydown", (event) => {
   } else if (isCommandShortcut && key === "f") {
     event.preventDefault();
     openEditorFind();
+  } else if (isCommandShortcut && key === "q") {
+    event.preventDefault();
+    void createQuickNote();
   } else if (isCommandShortcut && key === "t") {
     event.preventDefault();
     void cycleTheme();

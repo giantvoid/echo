@@ -18,7 +18,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 arboard = { version = "3.6.1", features = ["wayland-data-control"] }
 base64 = "0.22.1"
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4", features = ["serde", "clock"] }
 dirs = "6"
 image = "0.25.10"
 notify = "8"
