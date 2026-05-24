@@ -10,6 +10,12 @@
   font-display: block;
 }
 
+@font-face {
+  font-family: "ZXSpectrum";
+  src: url("../src-tauri/fonts/ZXSpectrum.ttf") format("truetype");
+  font-display: block;
+}
+
 :root {
   color-scheme: dark;
   --bg: #111318;
@@ -111,6 +117,21 @@
   --accent: #ffff55;
   --accent-strong: #ffffff;
   --danger: #ff5555;
+  --app-font-size: 16px;
+  --editor-font-size: 16px;
+}
+
+:root[data-theme="speccy"] {
+  color-scheme: dark;
+  --bg: #000000;
+  --panel: #000000;
+  --panel-soft: #0000cd;
+  --border: #00ffff;
+  --text: #ffffff;
+  --muted: #00cdcd;
+  --accent: #ffff00;
+  --accent-strong: #ffffff;
+  --danger: #ff0000;
   --app-font-size: 16px;
   --editor-font-size: 16px;
 }
@@ -936,19 +957,44 @@ kbd {
   font-weight: normal !important;
 }
 
-:root[data-theme="vga-437"] .cm-scroller,
-:root[data-theme="vga-blue"] .cm-scroller {
+:root[data-theme="speccy"] body,
+:root[data-theme="speccy"] button,
+:root[data-theme="speccy"] input,
+:root[data-theme="speccy"] #preview,
+:root[data-theme="speccy"] kbd,
+:root[data-theme="speccy"] .cm-editor,
+:root[data-theme="speccy"] .cm-editor * {
+  font-family: "ZXSpectrum", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  font-smooth: never;
+  font-synthesis: none;
+  font-weight: normal !important;
+}
+
+:root[data-theme="vga-437"] .cm-scroller {
   line-height: 16px;
   font-family: inherit;
 }
 
-:root[data-theme="vga-437"] .cm-content,
-:root[data-theme="vga-blue"] .cm-content {
+:root[data-theme="vga-blue"] .cm-scroller,
+:root[data-theme="speccy"] .cm-scroller {
+  line-height: 16px;
+  font-family: inherit;
+}
+
+:root[data-theme="vga-437"] .cm-content {
+  line-height: 16px;
+}
+
+:root[data-theme="vga-blue"] .cm-content,
+:root[data-theme="speccy"] .cm-content {
   line-height: 16px;
 }
 
 :root[data-theme="vga-437"] #preview,
-:root[data-theme="vga-blue"] #preview {
+:root[data-theme="vga-blue"] #preview,
+:root[data-theme="speccy"] #preview {
   font-size: var(--editor-font-size);
   line-height: 16px;
 }

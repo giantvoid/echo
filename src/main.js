@@ -55,7 +55,16 @@ const appWindow = getCurrentWindow();
 let rowHeight = 29;
 const minUiScale = -4;
 const maxUiScale = 8;
-const themes = ["dark", "light", "solarized", "hacker", "orange-hacker", "vga-437", "vga-blue"];
+const themes = [
+  "dark",
+  "light",
+  "solarized",
+  "hacker",
+  "orange-hacker",
+  "vga-437",
+  "vga-blue",
+  "speccy",
+];
 const welcomeNoteContent = `# Welcome to Echo
 
 Echo is a fast Markdown notebook for writing, searching, and daily notes.
@@ -67,7 +76,7 @@ Echo is a fast Markdown notebook for writing, searching, and daily notes.
 - Use Ctrl/Cmd+D or the Today button to open today's daily note.
 - Use the calendar to jump to any daily note; days with daily notes are marked.
 - Use Ctrl/Cmd+E to toggle Markdown preview.
-- Use Ctrl/Cmd+T to switch themes: dark, light, solarized, hacker, orange hacker, vga-437, and vga-blue.
+- Use Ctrl/Cmd+T to switch themes: dark, light, solarized, hacker, orange hacker, vga-437, vga-blue, and speccy.
 - Use Ctrl/Cmd+Q to create a quick note with a timestamped title.
 - Use Ctrl/Cmd+F to find text in the open note.
 - Use Ctrl/Cmd+. to toggle focus mode when you want only the editor.
@@ -133,13 +142,23 @@ const editorTheme = EditorView.theme(
   { dark: true },
 );
 
-function isVgaTheme(theme) {
-  return theme === "vga-437" || theme === "vga-blue";
+function getPixelThemeBaseSize(theme) {
+  if (theme === "vga-437") {
+    return 14;
+  }
+  if (theme === "vga-blue" || theme === "speccy") {
+    return 16;
+  }
+  return null;
 }
 
-function createMarkdownHighlightStyle(vgaTheme) {
-  const bold = vgaTheme ? {} : { fontWeight: "700" };
-  const boldStrong = vgaTheme ? {} : { fontWeight: "750" };
+function isPixelTheme(theme) {
+  return getPixelThemeBaseSize(theme) !== null;
+}
+
+function createMarkdownHighlightStyle(pixelTheme) {
+  const bold = pixelTheme ? {} : { fontWeight: "700" };
+  const boldStrong = pixelTheme ? {} : { fontWeight: "750" };
   return HighlightStyle.define([
     { tag: tags.heading, color: "var(--accent)", ...bold },
     { tag: tags.heading1, color: "var(--accent-strong)", ...boldStrong },
@@ -1402,8 +1421,8 @@ async function savePastedImageSource(imageSource) {
 function applyUiScale(uiScale) {
   appState.uiScale = Math.min(maxUiScale, Math.max(minUiScale, uiScale));
   rowHeight = Math.max(22, 29 + appState.uiScale);
-  if (isVgaTheme(appState.theme)) {
-    const baseSize = appState.theme === "vga-blue" ? 16 : 14;
+  const baseSize = getPixelThemeBaseSize(appState.theme);
+  if (baseSize !== null) {
     const size = baseSize + appState.uiScale;
     document.documentElement.style.setProperty("--app-font-size", `${size}px`);
     document.documentElement.style.setProperty("--editor-font-size", `${size}px`);
@@ -1425,7 +1444,7 @@ function applyTheme(theme) {
   applyUiScale(appState.uiScale);
   editor.dispatch({
     effects: highlightCompartment.reconfigure(
-      syntaxHighlighting(createMarkdownHighlightStyle(isVgaTheme(appState.theme))),
+      syntaxHighlighting(createMarkdownHighlightStyle(isPixelTheme(appState.theme))),
     ),
   });
 }
