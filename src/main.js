@@ -146,13 +146,13 @@ const editorTheme = EditorView.theme(
 
 function getPixelThemeBaseSize(theme) {
   if (theme === "vga-437") {
-    return 14;
+    return 16;
   }
   if (theme === "vga-blue" || theme === "speccy") {
     return 16;
   }
   if (theme === "vt") {
-    return 18;
+    return 24;
   }
   if (theme === "mf-3270") {
     return 16;
