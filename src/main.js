@@ -64,6 +64,7 @@ const themes = [
   "vga-437",
   "vga-blue",
   "speccy",
+  "vt",
 ];
 const welcomeNoteContent = `# Welcome to Echo
 
@@ -76,7 +77,7 @@ Echo is a fast Markdown notebook for writing, searching, and daily notes.
 - Use Ctrl/Cmd+D or the Today button to open today's daily note.
 - Use the calendar to jump to any daily note; days with daily notes are marked.
 - Use Ctrl/Cmd+E to toggle Markdown preview.
-- Use Ctrl/Cmd+T to switch themes: dark, light, solarized, hacker, orange hacker, vga-437, vga-blue, and speccy.
+- Use Ctrl/Cmd+T to switch themes: dark, light, solarized, hacker, orange hacker, vga-437, vga-blue, speccy, and vt.
 - Use Ctrl/Cmd+Q to create a quick note with a timestamped title.
 - Use Ctrl/Cmd+F to find text in the open note.
 - Use Ctrl/Cmd+. to toggle focus mode when you want only the editor.
@@ -148,6 +149,9 @@ function getPixelThemeBaseSize(theme) {
   }
   if (theme === "vga-blue" || theme === "speccy") {
     return 16;
+  }
+  if (theme === "vt") {
+    return 24;
   }
   return null;
 }

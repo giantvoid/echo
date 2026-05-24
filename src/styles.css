@@ -16,6 +16,12 @@
   font-display: block;
 }
 
+@font-face {
+  font-family: "VT323";
+  src: url("../src-tauri/fonts/VT323-Regular.ttf") format("truetype");
+  font-display: block;
+}
+
 :root {
   color-scheme: dark;
   --bg: #111318;
@@ -134,6 +140,22 @@
   --danger: #ff0000;
   --app-font-size: 16px;
   --editor-font-size: 16px;
+}
+
+:root[data-theme="vt"] {
+  color-scheme: dark;
+  --bg: #0c0a06;
+  --panel: #0c0a06;
+  --panel-soft: #1a1408;
+  --border: #4a3818;
+  --text: #ffb000;
+  --muted: #997020;
+  --accent: #ffcc66;
+  --accent-strong: #ffe8a8;
+  --danger: #ff7040;
+  --crt-glow: #ffb000;
+  --app-font-size: 24px;
+  --editor-font-size: 24px;
 }
 
 * {
@@ -997,6 +1019,73 @@ kbd {
 :root[data-theme="speccy"] #preview {
   font-size: var(--editor-font-size);
   line-height: 16px;
+}
+
+:root[data-theme="vt"] body,
+:root[data-theme="vt"] button,
+:root[data-theme="vt"] input,
+:root[data-theme="vt"] #preview,
+:root[data-theme="vt"] kbd,
+:root[data-theme="vt"] .cm-editor,
+:root[data-theme="vt"] .cm-editor * {
+  font-family: "VT323", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-synthesis: none;
+  font-weight: normal !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-shadow:
+    0 0 1px color-mix(in srgb, var(--crt-glow) 90%, transparent),
+    0 0 6px color-mix(in srgb, var(--crt-glow) 45%, transparent),
+    0 0 14px color-mix(in srgb, var(--crt-glow) 22%, transparent);
+}
+
+:root[data-theme="vt"] .cm-scroller {
+  line-height: 28px;
+  font-family: inherit;
+}
+
+:root[data-theme="vt"] .cm-content {
+  line-height: 28px;
+}
+
+:root[data-theme="vt"] #preview {
+  font-size: var(--editor-font-size);
+  line-height: 28px;
+}
+
+:root[data-theme="vt"] #app {
+  position: relative;
+  isolation: isolate;
+}
+
+:root[data-theme="vt"] #app::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgb(0 0 0 / 0%) 0,
+    rgb(0 0 0 / 0%) 2px,
+    rgb(0 0 0 / 14%) 2px,
+    rgb(0 0 0 / 14%) 3px
+  );
+  mix-blend-mode: multiply;
+}
+
+:root[data-theme="vt"] #app::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: radial-gradient(ellipse 85% 75% at center, transparent 40%, rgb(0 0 0 / 55%) 100%);
+}
+
+:root[data-theme="vt"] .workspace,
+:root[data-theme="vt"] .cm-editor {
+  filter: contrast(1.08) brightness(1.04);
 }
 
 .focus-mode body {
