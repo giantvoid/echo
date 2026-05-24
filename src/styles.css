@@ -22,6 +22,12 @@
   font-display: block;
 }
 
+@font-face {
+  font-family: "IBM3270";
+  src: url("../src-tauri/fonts/3270-Regular.ttf") format("truetype");
+  font-display: block;
+}
+
 :root {
   color-scheme: dark;
   --bg: #111318;
@@ -154,6 +160,22 @@
   --accent-strong: #ffe8a8;
   --danger: #ff7040;
   --crt-glow: #ffb000;
+  --app-font-size: 24px;
+  --editor-font-size: 24px;
+}
+
+:root[data-theme="mf-3270"] {
+  color-scheme: dark;
+  --bg: #040806;
+  --panel: #040806;
+  --panel-soft: #0a140a;
+  --border: #1e4a22;
+  --text: #41ff41;
+  --muted: #2a8a32;
+  --accent: #7fff7f;
+  --accent-strong: #b6ffb6;
+  --danger: #ff5555;
+  --crt-glow: #41ff41;
   --app-font-size: 24px;
   --editor-font-size: 24px;
 }
@@ -1085,6 +1107,73 @@ kbd {
 
 :root[data-theme="vt"] .workspace,
 :root[data-theme="vt"] .cm-editor {
+  filter: contrast(1.08) brightness(1.04);
+}
+
+:root[data-theme="mf-3270"] body,
+:root[data-theme="mf-3270"] button,
+:root[data-theme="mf-3270"] input,
+:root[data-theme="mf-3270"] #preview,
+:root[data-theme="mf-3270"] kbd,
+:root[data-theme="mf-3270"] .cm-editor,
+:root[data-theme="mf-3270"] .cm-editor * {
+  font-family: "IBM3270", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-synthesis: none;
+  font-weight: normal !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-shadow:
+    0 0 1px color-mix(in srgb, var(--crt-glow) 90%, transparent),
+    0 0 6px color-mix(in srgb, var(--crt-glow) 45%, transparent),
+    0 0 14px color-mix(in srgb, var(--crt-glow) 22%, transparent);
+}
+
+:root[data-theme="mf-3270"] .cm-scroller {
+  line-height: 28px;
+  font-family: inherit;
+}
+
+:root[data-theme="mf-3270"] .cm-content {
+  line-height: 28px;
+}
+
+:root[data-theme="mf-3270"] #preview {
+  font-size: var(--editor-font-size);
+  line-height: 28px;
+}
+
+:root[data-theme="mf-3270"] #app {
+  position: relative;
+  isolation: isolate;
+}
+
+:root[data-theme="mf-3270"] #app::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgb(0 0 0 / 0%) 0,
+    rgb(0 0 0 / 0%) 2px,
+    rgb(0 0 0 / 14%) 2px,
+    rgb(0 0 0 / 14%) 3px
+  );
+  mix-blend-mode: multiply;
+}
+
+:root[data-theme="mf-3270"] #app::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: radial-gradient(ellipse 85% 75% at center, transparent 40%, rgb(0 0 0 / 55%) 100%);
+}
+
+:root[data-theme="mf-3270"] .workspace,
+:root[data-theme="mf-3270"] .cm-editor {
   filter: contrast(1.08) brightness(1.04);
 }
 

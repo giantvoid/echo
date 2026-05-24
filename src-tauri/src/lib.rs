@@ -246,7 +246,7 @@ fn save_theme(theme: String) -> Result<AppConfig, String> {
     let normalized = theme.trim().to_ascii_lowercase();
     if !matches!(
         normalized.as_str(),
-        "dark" | "light" | "solarized" | "hacker" | "orange-hacker" | "vga-437" | "vga-blue" | "speccy" | "vt"
+        "dark" | "light" | "solarized" | "hacker" | "orange-hacker" | "vga-437" | "vga-blue" | "speccy" | "vt" | "mf-3270"
     ) {
         return Err("Unknown theme.".to_string());
     }
