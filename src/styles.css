@@ -122,15 +122,15 @@
 }
 
 :root[data-theme="speccy"] {
-  color-scheme: dark;
-  --bg: #000000;
-  --panel: #000000;
-  --panel-soft: #0000cd;
-  --border: #00ffff;
-  --text: #ffffff;
-  --muted: #00cdcd;
-  --accent: #ffff00;
-  --accent-strong: #ffffff;
+  color-scheme: light;
+  --bg: #cdcdcd;
+  --panel: #cdcdcd;
+  --panel-soft: #ffffff;
+  --border: #000000;
+  --text: #000000;
+  --muted: #0000cd;
+  --accent: #0000ff;
+  --accent-strong: #cd0000;
   --danger: #ff0000;
   --app-font-size: 16px;
   --editor-font-size: 16px;
