@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Echo",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "identifier": "app.echo.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
