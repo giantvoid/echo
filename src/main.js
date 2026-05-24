@@ -4,6 +4,7 @@ import { defaultKeymap, history, historyKeymap, indentLess, indentMore } from "@
 import { markdown } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import {
+  Compartment,
   EditorSelection,
   EditorState,
   RangeSetBuilder,
@@ -132,21 +133,31 @@ const editorTheme = EditorView.theme(
   { dark: true },
 );
 
-const markdownHighlightStyle = HighlightStyle.define([
-  { tag: tags.heading, color: "var(--accent)", fontWeight: "700" },
-  { tag: tags.heading1, color: "var(--accent-strong)", fontWeight: "750" },
-  { tag: tags.heading2, color: "var(--accent)", fontWeight: "700" },
-  { tag: tags.strong, color: "var(--text)", fontWeight: "700" },
-  { tag: tags.emphasis, color: "var(--text)", fontStyle: "italic" },
-  { tag: tags.strikethrough, color: "var(--muted)", textDecoration: "line-through" },
-  { tag: tags.link, color: "var(--accent)", textDecoration: "underline" },
-  { tag: tags.url, color: "var(--accent-strong)" },
-  { tag: tags.monospace, color: "var(--accent-strong)" },
-  { tag: tags.quote, color: "var(--muted)", fontStyle: "italic" },
-  { tag: tags.list, color: "var(--accent)" },
-  { tag: tags.contentSeparator, color: "var(--border)" },
-  { tag: tags.processingInstruction, color: "var(--muted)" },
-]);
+function isVgaTheme(theme) {
+  return theme === "vga-437" || theme === "vga-blue";
+}
+
+function createMarkdownHighlightStyle(vgaTheme) {
+  const bold = vgaTheme ? {} : { fontWeight: "700" };
+  const boldStrong = vgaTheme ? {} : { fontWeight: "750" };
+  return HighlightStyle.define([
+    { tag: tags.heading, color: "var(--accent)", ...bold },
+    { tag: tags.heading1, color: "var(--accent-strong)", ...boldStrong },
+    { tag: tags.heading2, color: "var(--accent)", ...bold },
+    { tag: tags.strong, color: "var(--text)", ...bold },
+    { tag: tags.emphasis, color: "var(--text)", fontStyle: "italic" },
+    { tag: tags.strikethrough, color: "var(--muted)", textDecoration: "line-through" },
+    { tag: tags.link, color: "var(--accent)", textDecoration: "underline" },
+    { tag: tags.url, color: "var(--accent-strong)" },
+    { tag: tags.monospace, color: "var(--accent-strong)" },
+    { tag: tags.quote, color: "var(--muted)", fontStyle: "italic" },
+    { tag: tags.list, color: "var(--accent)" },
+    { tag: tags.contentSeparator, color: "var(--border)" },
+    { tag: tags.processingInstruction, color: "var(--muted)" },
+  ]);
+}
+
+const highlightCompartment = new Compartment();
 
 const editorFindState = {
   open: false,
@@ -351,7 +362,7 @@ const editor = new EditorView({
     extensions: [
       history(),
       markdown(),
-      syntaxHighlighting(markdownHighlightStyle),
+      highlightCompartment.of(syntaxHighlighting(createMarkdownHighlightStyle(false))),
       keymap.of([
         { key: "Tab", run: indentMore },
         { key: "Shift-Tab", run: indentLess },
@@ -1391,8 +1402,15 @@ async function savePastedImageSource(imageSource) {
 function applyUiScale(uiScale) {
   appState.uiScale = Math.min(maxUiScale, Math.max(minUiScale, uiScale));
   rowHeight = Math.max(22, 29 + appState.uiScale);
-  document.documentElement.style.setProperty("--app-font-size", `${15 + appState.uiScale}px`);
-  document.documentElement.style.setProperty("--editor-font-size", `${14.7 + appState.uiScale}px`);
+  if (isVgaTheme(appState.theme)) {
+    const baseSize = appState.theme === "vga-blue" ? 16 : 14;
+    const size = baseSize + appState.uiScale;
+    document.documentElement.style.setProperty("--app-font-size", `${size}px`);
+    document.documentElement.style.setProperty("--editor-font-size", `${size}px`);
+  } else {
+    document.documentElement.style.setProperty("--app-font-size", `${15 + appState.uiScale}px`);
+    document.documentElement.style.setProperty("--editor-font-size", `${14.7 + appState.uiScale}px`);
+  }
   document.documentElement.style.setProperty("--result-row-height", `${rowHeight}px`);
   renderResults();
 }
@@ -1404,6 +1422,12 @@ function normalizeTheme(theme) {
 function applyTheme(theme) {
   appState.theme = normalizeTheme(theme);
   document.documentElement.dataset.theme = appState.theme;
+  applyUiScale(appState.uiScale);
+  editor.dispatch({
+    effects: highlightCompartment.reconfigure(
+      syntaxHighlighting(createMarkdownHighlightStyle(isVgaTheme(appState.theme))),
+    ),
+  });
 }
 
 async function loadAppConfig() {
