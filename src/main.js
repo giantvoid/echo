@@ -54,7 +54,7 @@ const appWindow = getCurrentWindow();
 let rowHeight = 29;
 const minUiScale = -4;
 const maxUiScale = 8;
-const themes = ["dark", "light", "solarized", "hacker", "orange-hacker"];
+const themes = ["dark", "light", "solarized", "hacker", "orange-hacker", "vga-437", "vga-blue"];
 const welcomeNoteContent = `# Welcome to Echo
 
 Echo is a fast Markdown notebook for writing, searching, and daily notes.
@@ -66,7 +66,7 @@ Echo is a fast Markdown notebook for writing, searching, and daily notes.
 - Use Ctrl/Cmd+D or the Today button to open today's daily note.
 - Use the calendar to jump to any daily note; days with daily notes are marked.
 - Use Ctrl/Cmd+E to toggle Markdown preview.
-- Use Ctrl/Cmd+T to switch themes: dark, light, solarized, hacker, and orange hacker.
+- Use Ctrl/Cmd+T to switch themes: dark, light, solarized, hacker, orange hacker, vga-437, and vga-blue.
 - Use Ctrl/Cmd+Q to create a quick note with a timestamped title.
 - Use Ctrl/Cmd+F to find text in the open note.
 - Use Ctrl/Cmd+. to toggle focus mode when you want only the editor.
