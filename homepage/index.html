@@ -3,12 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Echo - Think clearly. Write freely.</title>
-  <meta name="description" content="A blazingly fast, minimal note-taking app that gets out of your way." />
+  <title>Echo v0.1.3 — Think clearly. Write freely.</title>
+  <meta name="description" content="A blazingly fast, minimal note-taking app for Markdown files. Distraction-free writing with retro terminal themes." />
   <link rel="icon" href="favicon.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Lora:ital,wght@0,400;1,400&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after {
       box-sizing: border-box;
@@ -35,7 +32,7 @@
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Inter', system-ui, sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       font-size: 16px;
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
@@ -49,7 +46,6 @@
       text-decoration: underline;
     }
 
-    /* ── NAV ── */
     nav {
       position: sticky;
       top: 0;
@@ -64,19 +60,33 @@
       border-bottom: 1px solid var(--border);
     }
 
-    .nav-logo {
-      font-size: 1.1rem;
-      font-weight: 600;
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
       color: var(--text);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 1.1rem;
       letter-spacing: 0.01em;
     }
-    .nav-logo span {
+    .nav-brand:hover {
+      text-decoration: none;
+    }
+    .nav-brand span {
       color: var(--accent);
+    }
+
+    .nav-logo-placeholder {
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+      border-radius: 6px;
     }
 
     .nav-links {
       display: flex;
-      gap: 2rem;
+      gap: 1.5rem;
       list-style: none;
     }
     .nav-links a {
@@ -90,7 +100,6 @@
       text-decoration: none;
     }
 
-    /* ── SHARED ── */
     .container {
       max-width: 1100px;
       margin: 0 auto;
@@ -121,7 +130,107 @@
 
     .section-sub {
       color: var(--muted);
-      max-width: 520px;
+      max-width: 560px;
+      line-height: 1.7;
+    }
+
+    .version-badge {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      margin-right: 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--bg);
+      background: var(--accent);
+      border-radius: 4px;
+      vertical-align: middle;
+    }
+
+    /* ── MEDIA PLACEHOLDER ── */
+    .media-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      width: 100%;
+      background: var(--bg-subtle);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      color: var(--muted);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .media-placeholder::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 3px,
+        rgba(0, 0, 0, 0.12) 3px,
+        rgba(0, 0, 0, 0.12) 4px
+      );
+      pointer-events: none;
+      opacity: 0.5;
+    }
+
+    .media-placeholder-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent-dim);
+      position: relative;
+    }
+
+    .media-placeholder-file {
+      font-size: 0.8rem;
+      font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+      color: var(--text);
+      position: relative;
+    }
+
+    .media-placeholder-size {
+      font-size: 0.72rem;
+      position: relative;
+    }
+
+    .media-placeholder--hero {
+      aspect-ratio: 16 / 10;
+      min-height: 280px;
+    }
+
+    .media-placeholder--logo {
+      width: 32px;
+      height: 32px;
+      min-height: unset;
+      border-radius: 6px;
+    }
+
+    .media-placeholder--logo .media-placeholder-label,
+    .media-placeholder--logo .media-placeholder-size {
+      display: none;
+    }
+
+    .media-placeholder--logo .media-placeholder-file {
+      font-size: 0.55rem;
+    }
+
+    .media-placeholder--gallery {
+      aspect-ratio: 16 / 10;
+      min-height: 160px;
+    }
+
+    .media-placeholder--wide {
+      aspect-ratio: 16 / 9;
+      min-height: 200px;
+      margin-top: 2rem;
     }
 
     /* ── HERO ── */
@@ -147,7 +256,7 @@
     }
 
     .hero-headline {
-      font-family: 'Lora', Georgia, serif;
+      font-family: Georgia, "Times New Roman", Times, serif;
       font-size: clamp(2.4rem, 5vw, 3.6rem);
       font-weight: 400;
       line-height: 1.15;
@@ -213,20 +322,14 @@
       position: relative;
     }
 
-    .hero-image img {
-      width: 100%;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      box-shadow: 0 32px 80px rgba(0,0,0,0.6);
-    }
-
-    .hero-image::before {
-      content: '';
+    .hero-image::after {
+      content: "";
       position: absolute;
       inset: -24px;
-      background: radial-gradient(ellipse at center, rgba(56,189,184,0.08) 0%, transparent 70%);
+      background: radial-gradient(ellipse at center, rgba(56, 189, 184, 0.08) 0%, transparent 70%);
       border-radius: 50%;
       pointer-events: none;
+      z-index: -1;
     }
 
     /* ── FEATURES ── */
@@ -244,7 +347,7 @@
 
     .features-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 1.5rem;
     }
 
@@ -280,6 +383,123 @@
       line-height: 1.6;
     }
 
+    .feature-desc kbd {
+      display: inline-block;
+      padding: 0.1rem 0.35rem;
+      font-size: 0.78em;
+      font-family: ui-monospace, Consolas, monospace;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+
+    /* ── THEMES ── */
+    #themes {
+      border-top: 1px solid var(--border);
+      background: var(--bg-card);
+    }
+
+    .themes-header {
+      margin-bottom: 2.5rem;
+    }
+
+    .theme-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .theme-chip {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      min-width: 88px;
+    }
+
+    .theme-chip-swatch {
+      width: 72px;
+      height: 48px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.35);
+    }
+
+    .theme-chip-name {
+      font-size: 0.72rem;
+      font-family: ui-monospace, Consolas, monospace;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .themes-classic {
+      margin-top: 1.5rem;
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    .themes-classic strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* ── SHORTCUTS ── */
+    #shortcuts {
+      border-top: 1px solid var(--border);
+    }
+
+    .shortcuts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem 3rem;
+      margin-top: 2.5rem;
+    }
+
+    .shortcut-group h3 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .shortcut-list {
+      display: grid;
+      gap: 0.65rem;
+    }
+
+    .shortcut-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      font-size: 0.875rem;
+    }
+
+    .shortcut-row dt {
+      color: var(--muted);
+      flex: 1;
+    }
+
+    .shortcut-row dd {
+      margin: 0;
+      flex-shrink: 0;
+    }
+
+    kbd {
+      display: inline-block;
+      padding: 0.15rem 0.4rem;
+      font-size: 0.78rem;
+      font-family: ui-monospace, Consolas, monospace;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    }
+
     /* ── SCREENSHOTS ── */
     #screenshots {
       border-top: 1px solid var(--border);
@@ -292,7 +512,6 @@
     .gallery {
       display: grid;
       grid-template-columns: repeat(12, 1fr);
-      grid-template-rows: auto auto;
       gap: 1rem;
     }
 
@@ -301,12 +520,6 @@
       border-radius: var(--radius);
       border: 1px solid var(--border);
       background: var(--bg-card);
-      transition: border-color 0.2s, transform 0.2s;
-      cursor: pointer;
-    }
-    .gallery-item:hover {
-      border-color: var(--muted);
-      transform: scale(1.01);
     }
 
     .gallery-item:nth-child(1) { grid-column: 1 / 8; }
@@ -314,13 +527,9 @@
     .gallery-item:nth-child(3) { grid-column: 1 / 5; }
     .gallery-item:nth-child(4) { grid-column: 5 / 9; }
     .gallery-item:nth-child(5) { grid-column: 9 / 13; }
-
-    .gallery-item img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
+    .gallery-item:nth-child(6) { grid-column: 1 / 5; }
+    .gallery-item:nth-child(7) { grid-column: 5 / 9; }
+    .gallery-item:nth-child(8) { grid-column: 9 / 13; }
 
     .gallery-caption {
       padding: 0.6rem 0.9rem;
@@ -330,43 +539,50 @@
       font-weight: 500;
     }
 
-    /* ── LIGHTBOX ── */
-    .lightbox {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 1000;
-      background: rgba(0, 0, 0, 0.9);
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-    }
-    .lightbox.active {
-      display: flex;
-    }
-    .lightbox img {
-      max-width: 90vw;
-      max-height: 88vh;
-      border-radius: var(--radius);
-      box-shadow: 0 24px 80px rgba(0,0,0,0.8);
-    }
-    .lightbox-close {
-      position: absolute;
-      top: 1.5rem;
-      right: 1.5rem;
+    /* ── FONTS ── */
+    #fonts {
+      border-top: 1px solid var(--border);
       background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      color: var(--muted);
-      transition: color 0.2s;
     }
-    .lightbox-close:hover { color: var(--text); }
+
+    .fonts-table-wrap {
+      overflow-x: auto;
+      margin-top: 2rem;
+    }
+
+    .fonts-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    .fonts-table th,
+    .fonts-table td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .fonts-table th {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .fonts-table td code {
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 0.82em;
+      color: var(--accent);
+    }
+
+    .fonts-note {
+      margin-top: 1.25rem;
+      font-size: 0.875rem;
+      color: var(--muted);
+      font-style: italic;
+    }
 
     /* ── BUILT WITH ── */
     #built-with {
@@ -412,41 +628,48 @@
     /* ── FOOTER ── */
     footer {
       border-top: 1px solid var(--border);
-      padding: 40px 0;
+      padding: 48px 0;
     }
     .footer-inner {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
+      text-align: center;
       gap: 1rem;
     }
-    .footer-left {
-      font-size: 0.875rem;
-      color: var(--muted);
-    }
-    .footer-left strong {
+    .footer-primary {
+      font-size: 1rem;
       color: var(--text);
+      line-height: 1.8;
     }
-    .footer-right {
+    .footer-primary strong {
+      font-weight: 600;
+    }
+    .footer-author {
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .footer-links {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
-      gap: 1.5rem;
+      justify-content: center;
+      gap: 1.25rem;
       font-size: 0.875rem;
       color: var(--muted);
     }
-    .footer-right a {
+    .footer-links a {
       color: var(--muted);
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
       transition: color 0.2s;
     }
-    .footer-right a:hover {
+    .footer-links a:hover {
       color: var(--text);
       text-decoration: none;
     }
-    .footer-right svg {
+    .footer-links svg {
       width: 16px;
       height: 16px;
     }
@@ -465,64 +688,79 @@
         display: flex;
         flex-direction: column;
       }
+      .gallery-item {
+        grid-column: unset !important;
+      }
 
       .nav-links { display: none; }
 
-      .footer-inner { flex-direction: column; align-items: flex-start; }
+      .theme-chips {
+        justify-content: center;
+      }
     }
 
     @media (max-width: 480px) {
       .btn-group { flex-direction: column; }
-      .features-grid { grid-template-columns: 1fr 1fr; }
+      .features-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
 
-<!-- NAV -->
 <nav>
-  <span class="nav-logo">Echo<span>.</span></span>
+  <a class="nav-brand" href="#hero">
+    <img src="./images/logo.png" alt="Echo" width="48" height="48" />
+    Echo<span>.</span>
+  </a>
   <ul class="nav-links">
     <li><a href="#features">Features</a></li>
+    <li><a href="#themes">Themes</a></li>
+    <li><a href="#shortcuts">Shortcuts</a></li>
     <li><a href="#screenshots">Screenshots</a></li>
+    <li><a href="#fonts">Fonts</a></li>
     <li><a href="https://github.com/giantvoid/echo" target="_blank" rel="noopener">GitHub</a></li>
   </ul>
 </nav>
 
-<!-- HERO -->
 <section id="hero">
   <div class="container">
     <div class="hero-grid">
       <div class="hero-text">
-        <p class="hero-eyebrow">echoedit.app</p>
+        <p class="hero-eyebrow">
+          <span class="version-badge">v0.1.3</span>
+          echoedit.app
+        </p>
         <h1 class="hero-headline">Think clearly.<br>Write freely.</h1>
-        <p class="hero-sub">A blazingly fast, minimal note-taking app that gets out of your way.</p>
+        <p class="hero-sub">
+          A blazingly fast, minimal note-taking app that gets out of your way.
+          Plain Markdown on disk, instant search, and joyful retro terminal themes.
+        </p>
         <div class="btn-group">
           <a class="btn btn-primary" href="https://github.com/giantvoid/echo/releases/latest" target="_blank" rel="noopener">
-            <!-- Linux penguin -->
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
             Download for Linux
           </a>
           <a class="btn btn-ghost" href="https://github.com/giantvoid/echo/releases/latest" target="_blank" rel="noopener">
-            <!-- Windows -->
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
             Windows
           </a>
           <a class="btn btn-ghost" href="https://github.com/giantvoid/echo/releases/latest" target="_blank" rel="noopener">
-            <!-- Apple -->
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 0.77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
             macOS
           </a>
         </div>
       </div>
       <div class="hero-image">
-        <img src="screenshots/echo.png" alt="Echo app main view" />
+        <div class="media-placeholder media-placeholder--hero" role="img" aria-label="Screenshot placeholder: main workspace">
+          <span class="media-placeholder-label">Placeholder</span>
+          <span class="media-placeholder-file">screenshots/hero-main.png</span>
+          <span class="media-placeholder-size">1280 × 820 px</span>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- FEATURES -->
 <section id="features">
   <div class="container">
     <div class="features-header">
@@ -537,51 +775,63 @@
           <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
         </svg>
         <h3 class="feature-title">Blazing fast</h3>
-        <p class="feature-desc">Rust-powered backend. Opens instantly, searches in milliseconds, never gets sluggish.</p>
+        <p class="feature-desc">Rust-powered backend. Opens instantly, searches in milliseconds, stays light on your machine.</p>
       </div>
 
       <div class="feature-card">
         <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
         </svg>
         <h3 class="feature-title">Plain Markdown files</h3>
-        <p class="feature-desc">Your notes are just `.md` files on disk. No databases, no lock-in, no surprises.</p>
+        <p class="feature-desc">Your notes are just <code>.md</code> files on disk. Live preview, no database, no lock-in.</p>
       </div>
 
       <div class="feature-card">
         <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-          <line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="8" y1="18" x2="8" y2="18"/>
         </svg>
         <h3 class="feature-title">Daily notes</h3>
-        <p class="feature-desc">Use the built-in calendar to navigate or create daily notes with a single click - or just type a date path and Echo does the rest.</p>
+        <p class="feature-desc">Built-in calendar and <kbd>Ctrl/Cmd+D</kbd> jump straight to today's daily note.</p>
       </div>
 
       <div class="feature-card">
         <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
-        <h3 class="feature-title">Instant fuzzy search</h3>
-        <p class="feature-desc">Find any note as you type. Fuzzy matching across titles and content - no waiting.</p>
+        <h3 class="feature-title">Improved fuzzy search</h3>
+        <p class="feature-desc">Case-insensitive, typo-tolerant matching across titles, paths, and content — ranked so the right note surfaces first.</p>
+      </div>
+
+      <div class="feature-card">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+        </svg>
+        <h3 class="feature-title">Quick notes</h3>
+        <p class="feature-desc">Press <kbd>Ctrl/Cmd+Q</kbd> to create a timestamped note and start writing immediately.</p>
+      </div>
+
+      <div class="feature-card">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/>
+        </svg>
+        <h3 class="feature-title">Find in note</h3>
+        <p class="feature-desc"><kbd>Ctrl/Cmd+F</kbd> searches inside the open note with match highlighting as you type.</p>
       </div>
 
       <div class="feature-card">
         <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M12 21c0 0-7-4.5-7-10a7 7 0 0 1 7-7 7 7 0 0 1 7 7c0 5.5-7 10-7 10z"/>
-          <path d="M12 4c0 0-3 2.5-3 6s3 7 3 7"/>
-          <path d="M12 4c0 0 3 2.5 3 6s-3 7-3 7"/>
-          <path d="M5 11c0 0 2-3 7-3s7 3 7 3"/>
         </svg>
         <h3 class="feature-title">Beautiful focus mode</h3>
-        <p class="feature-desc">Strip away all distractions. Just you, your words, and a calm full-screen canvas.</p>
+        <p class="feature-desc"><kbd>Ctrl/Cmd+.</kbd> strips away chrome for a calm, full-screen writing canvas.</p>
       </div>
 
       <div class="feature-card">
         <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
         </svg>
-        <h3 class="feature-title">Multiple themes</h3>
-        <p class="feature-desc">Choose from a curated set of dark and light themes that are easy on the eyes.</p>
+        <h3 class="feature-title">10 color themes</h3>
+        <p class="feature-desc">Dark, light, solarized, hacker variants, plus five retro terminal themes with authentic pixel and CRT fonts.</p>
       </div>
 
       <div class="feature-card">
@@ -590,7 +840,15 @@
           <path d="M14 4h8M14 9h5M14 15h8M14 20h5"/>
         </svg>
         <h3 class="feature-title">Keyboard first</h3>
-        <p class="feature-desc">Navigate, search, and write without lifting your hands from the keys - shortcuts for everything that matters, none that don't.</p>
+        <p class="feature-desc"><kbd>Ctrl/Cmd+K</kbd> opens the full shortcut reference — navigate without leaving the keyboard.</p>
+      </div>
+
+      <div class="feature-card">
+        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+        </svg>
+        <h3 class="feature-title">Cross-platform</h3>
+        <p class="feature-desc">Native builds for Windows, macOS, and Linux — one app, same files everywhere.</p>
       </div>
 
       <div class="feature-card">
@@ -605,47 +863,206 @@
   </div>
 </section>
 
-<!-- SCREENSHOTS -->
+<section id="themes">
+  <div class="container">
+    <div class="themes-header">
+      <p class="section-label">Retro themes</p>
+      <h2 class="section-title">Terminal nostalgia, built in.</h2>
+      <p class="section-sub">
+        Five CRT and DOS-inspired themes ship with authentic open fonts — from IBM 3270 green phosphor
+        to ZX Spectrum paper white and Borland blue.
+      </p>
+    </div>
+
+    <div class="theme-chips" role="list" aria-label="Retro theme previews">
+      <div class="theme-chip" role="listitem">
+        <div class="theme-chip-swatch" style="background: #000000; border-color: #555555;" title="vga-437"></div>
+        <span class="theme-chip-name">vga-437</span>
+      </div>
+      <div class="theme-chip" role="listitem">
+        <div class="theme-chip-swatch" style="background: #0000aa;" title="vga-blue"></div>
+        <span class="theme-chip-name">vga-blue</span>
+      </div>
+      <div class="theme-chip" role="listitem">
+        <div class="theme-chip-swatch" style="background: #cdcdcd;" title="speccy"></div>
+        <span class="theme-chip-name">speccy</span>
+      </div>
+      <div class="theme-chip" role="listitem">
+        <div class="theme-chip-swatch" style="background: #0c0a06; box-shadow: inset 0 0 8px #ffb000;" title="vt"></div>
+        <span class="theme-chip-name">vt</span>
+      </div>
+      <div class="theme-chip" role="listitem">
+        <div class="theme-chip-swatch" style="background: #040806; box-shadow: inset 0 0 8px #41ff41;" title="mf-3270"></div>
+        <span class="theme-chip-name">mf-3270</span>
+      </div>
+    </div>
+
+    <p class="themes-classic">
+      Plus classic themes: <strong>dark</strong>, <strong>light</strong>, <strong>solarized</strong>,
+      <strong>hacker</strong>, and <strong>orange-hacker</strong>.
+      Cycle with <kbd>Ctrl/Cmd+T</kbd>.
+    </p>
+
+    <div class="media-placeholder media-placeholder--wide" role="img" aria-label="Screenshot placeholder: all themes">
+      <span class="media-placeholder-label">Placeholder</span>
+      <span class="media-placeholder-file">screenshots/themes-grid.png</span>
+      <span class="media-placeholder-size">1920 × 1080 px recommended</span>
+    </div>
+  </div>
+</section>
+
+<section id="shortcuts">
+  <div class="container">
+    <p class="section-label">Keyboard</p>
+    <h2 class="section-title">Stay on the keys.</h2>
+    <p class="section-sub">Echo is designed for a keyboard-first workflow. Press <kbd>Ctrl/Cmd+K</kbd> anytime in the app for the full list.</p>
+
+    <div class="shortcuts-grid">
+      <div class="shortcut-group">
+        <h3>Notes &amp; search</h3>
+        <dl class="shortcut-list">
+          <div class="shortcut-row"><dt>Search notes</dt><dd><kbd>Ctrl/Cmd</kbd> + <kbd>L</kbd></dd></div>
+          <div class="shortcut-row"><dt>Quick note</dt><dd><kbd>Ctrl/Cmd</kbd> + <kbd>Q</kbd></dd></div>
+          <div class="shortcut-row"><dt>Find in note</dt><dd><kbd>Ctrl/Cmd</kbd> + <kbd>F</kbd></dd></div>
+          <div class="shortcut-row"><dt>Today's daily note</dt><dd><kbd>Ctrl/Cmd</kbd> + <kbd>D</kbd></dd></div>
+        </dl>
+      </div>
+      <div class="shortcut-group">
+        <h3>View &amp; appearance</h3>
+        <dl class="shortcut-list">
+          <div class="shortcut-row"><dt>Toggle preview</dt><dd><kbd>Ctrl/Cmd</kbd> + <kbd>E</kbd></dd></div>
+          <div class="shortcut-row"><dt>Cycle theme</dt><dd><kbd>Ctrl/Cmd</kbd> + <kbd>T</kbd></dd></div>
+          <div class="shortcut-row"><dt>Focus mode</dt><dd><kbd>Ctrl/Cmd</kbd> + <kbd>.</kbd></dd></div>
+          <div class="shortcut-row"><dt>UI size</dt><dd><kbd>Ctrl/Cmd</kbd> + <kbd>+</kbd> / <kbd>-</kbd></dd></div>
+        </dl>
+      </div>
+      <div class="shortcut-group">
+        <h3>Help</h3>
+        <dl class="shortcut-list">
+          <div class="shortcut-row"><dt>All shortcuts</dt><dd><kbd>Ctrl/Cmd</kbd> + <kbd>K</kbd></dd></div>
+          <div class="shortcut-row"><dt>Markdown syntax</dt><dd><kbd>Ctrl/Cmd</kbd> + <kbd>M</kbd></dd></div>
+        </dl>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="screenshots">
   <div class="container">
     <div class="screenshots-header">
       <p class="section-label">Screenshots</p>
       <h2 class="section-title">See it in action.</h2>
+      <p class="section-sub">Screenshots coming soon — placeholders show the assets we need for v0.1.3.</p>
     </div>
     <div class="gallery">
-      <div class="gallery-item" onclick="openLightbox('screenshots/echo.png', 'Main view')">
-        <img src="screenshots/echo.png" alt="Echo main view" loading="lazy" />
-        <div class="gallery-caption">Main view</div>
+      <div class="gallery-item">
+        <div class="media-placeholder media-placeholder--gallery" role="img" aria-label="Main workspace placeholder">
+          <span class="media-placeholder-file">screenshots/hero-main.png</span>
+          <span class="media-placeholder-size">1280 × 820</span>
+        </div>
+        <div class="gallery-caption">Main workspace</div>
       </div>
-      <div class="gallery-item" onclick="openLightbox('screenshots/themes.png', 'All themes')">
-        <img src="screenshots/themes.png" alt="All themes" loading="lazy" />
+      <div class="gallery-item">
+        <div class="media-placeholder media-placeholder--gallery" role="img" aria-label="All themes placeholder">
+          <span class="media-placeholder-file">screenshots/themes-grid.png</span>
+          <span class="media-placeholder-size">1920 × 1080</span>
+        </div>
         <div class="gallery-caption">All themes</div>
       </div>
-      <div class="gallery-item" onclick="openLightbox('screenshots/focus-green.png', 'Focus mode')">
-        <img src="screenshots/focus-green.png" alt="Focus mode" loading="lazy" />
+      <div class="gallery-item">
+        <div class="media-placeholder media-placeholder--gallery" role="img" aria-label="Focus mode placeholder">
+          <span class="media-placeholder-file">screenshots/focus-mode.png</span>
+          <span class="media-placeholder-size">1280 × 820</span>
+        </div>
         <div class="gallery-caption">Focus mode</div>
       </div>
-      <div class="gallery-item" onclick="openLightbox('screenshots/keyboard-shortcuts.png', 'Keyboard shortcuts')">
-        <img src="screenshots/keyboard-shortcuts.png" alt="Keyboard shortcuts" loading="lazy" />
+      <div class="gallery-item">
+        <div class="media-placeholder media-placeholder--gallery" role="img" aria-label="Quick note placeholder">
+          <span class="media-placeholder-file">screenshots/quick-note.png</span>
+          <span class="media-placeholder-size">1280 × 820</span>
+        </div>
+        <div class="gallery-caption">Quick note</div>
+      </div>
+      <div class="gallery-item">
+        <div class="media-placeholder media-placeholder--gallery" role="img" aria-label="Find in note placeholder">
+          <span class="media-placeholder-file">screenshots/find-in-note.png</span>
+          <span class="media-placeholder-size">1280 × 820</span>
+        </div>
+        <div class="gallery-caption">Find in note</div>
+      </div>
+      <div class="gallery-item">
+        <div class="media-placeholder media-placeholder--gallery" role="img" aria-label="Fuzzy search placeholder">
+          <span class="media-placeholder-file">screenshots/fuzzy-search.png</span>
+          <span class="media-placeholder-size">1280 × 820</span>
+        </div>
+        <div class="gallery-caption">Fuzzy search</div>
+      </div>
+      <div class="gallery-item">
+        <div class="media-placeholder media-placeholder--gallery" role="img" aria-label="Keyboard shortcuts placeholder">
+          <span class="media-placeholder-file">screenshots/keyboard-shortcuts.png</span>
+          <span class="media-placeholder-size">1280 × 820</span>
+        </div>
         <div class="gallery-caption">Keyboard shortcuts</div>
       </div>
-      <div class="gallery-item" onclick="openLightbox('screenshots/markdown-syntax.png', 'Markdown syntax reference')">
-        <img src="screenshots/markdown-syntax.png" alt="Markdown syntax reference" loading="lazy" />
+      <div class="gallery-item">
+        <div class="media-placeholder media-placeholder--gallery" role="img" aria-label="Markdown syntax placeholder">
+          <span class="media-placeholder-file">screenshots/markdown-syntax.png</span>
+          <span class="media-placeholder-size">1280 × 820</span>
+        </div>
         <div class="gallery-caption">Markdown reference</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- LIGHTBOX -->
-<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
-  <button class="lightbox-close" onclick="closeLightbox()" aria-label="Close">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-  </button>
-  <img id="lightbox-img" src="" alt="" />
-</div>
+<section id="fonts">
+  <div class="container">
+    <p class="section-label">Credits</p>
+    <h2 class="section-title">Font licenses</h2>
+    <p class="section-sub">Retro themes use open fonts bundled with Echo. Authors and license terms are on each project's page.</p>
 
-<!-- BUILT WITH -->
+    <div class="fonts-table-wrap">
+      <table class="fonts-table">
+        <thead>
+          <tr>
+            <th>Font</th>
+            <th>Theme</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Modern DOS</td>
+            <td><code>vga-blue</code></td>
+            <td><a href="https://www.dafont.com/modern-dos.font" target="_blank" rel="noopener">dafont.com/modern-dos</a></td>
+          </tr>
+          <tr>
+            <td>BlockZone</td>
+            <td><code>vga-437</code></td>
+            <td><a href="https://github.com/ansilove/BlockZone" target="_blank" rel="noopener">github.com/ansilove/BlockZone</a></td>
+          </tr>
+          <tr>
+            <td>zx-spectrum-unicode-font</td>
+            <td><code>speccy</code></td>
+            <td><a href="https://github.com/jfsebastian/zx-spectrum-unicode-font" target="_blank" rel="noopener">github.com/jfsebastian/zx-spectrum-unicode-font</a></td>
+          </tr>
+          <tr>
+            <td>VT323</td>
+            <td><code>vt</code></td>
+            <td><a href="https://fonts.google.com/specimen/VT323" target="_blank" rel="noopener">Google Fonts — VT323</a></td>
+          </tr>
+          <tr>
+            <td>3270font</td>
+            <td><code>mf-3270</code></td>
+            <td><a href="https://github.com/rbanffy/3270font" target="_blank" rel="noopener">github.com/rbanffy/3270font</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="fonts-note">For more information about each font's authors and license terms, see the pages listed in the Source column above.</p>
+  </div>
+</section>
+
 <section id="built-with">
   <div class="container">
     <div class="built-inner">
@@ -668,14 +1085,17 @@
   </div>
 </section>
 
-<!-- FOOTER -->
 <footer>
   <div class="container">
     <div class="footer-inner">
-      <div class="footer-left">
-        <strong>Echo</strong> &nbsp;·&nbsp; echoedit.app &nbsp;·&nbsp; MIT License
-      </div>
-      <div class="footer-right">
+      <p class="footer-primary">
+        <strong>Echo v0.1.3</strong> · Created by <span class="footer-author">Andriy Makarevych</span>
+      </p>
+      <div class="footer-links">
+        <a href="https://echoedit.app">echoedit.app</a>
+        <span>·</span>
+        <span>MIT License</span>
+        <span>·</span>
         <a href="https://github.com/giantvoid/echo" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.73.083-.73 1.205.085 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23A11.51 11.51 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.29-1.552 3.297-1.23 3.297-1.23.646 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/></svg>
           GitHub
@@ -684,32 +1104,6 @@
     </div>
   </div>
 </footer>
-
-<script>
-  function openLightbox(src, alt) {
-    const lb = document.getElementById('lightbox');
-    const img = document.getElementById('lightbox-img');
-    img.src = src;
-    img.alt = alt;
-    lb.classList.add('active');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeLightbox(event) {
-    if (event && event.target !== document.getElementById('lightbox') &&
-        !event.target.closest('.lightbox-close')) return;
-    const lb = document.getElementById('lightbox');
-    lb.classList.remove('active');
-    document.body.style.overflow = '';
-  }
-
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      document.getElementById('lightbox').classList.remove('active');
-      document.body.style.overflow = '';
-    }
-  });
-</script>
 
 </body>
 </html>
