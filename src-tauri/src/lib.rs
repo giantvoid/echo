@@ -328,7 +328,6 @@ fn delete_note(path: String, state: State<'_, AppState>) -> Result<NotesSnapshot
         return Err("Only Markdown note files can be deleted.".to_string());
     }
 
-    delete_note_attachments(&note_path)?;
     fs::remove_file(&note_path).map_err(|error| format!("Could not delete note: {error}"))?;
     state.refresh_index()?;
     state.snapshot()
@@ -387,37 +386,6 @@ fn rename_note(
         new_path,
         snapshot,
     })
-}
-
-fn delete_note_attachments(note_path: &Path) -> Result<(), String> {
-    let Some(note_dir) = note_path.parent() else {
-        return Ok(());
-    };
-    let attachments_dir = note_dir.join("attachments");
-    if !attachments_dir.is_dir() {
-        return Ok(());
-    }
-
-    for entry in fs::read_dir(&attachments_dir)
-        .map_err(|error| format!("Could not read attachments folder: {error}"))?
-    {
-        let entry = entry.map_err(|error| format!("Could not read attachment entry: {error}"))?;
-        let path = entry.path();
-        if path.is_file() && is_image_file(&path) {
-            fs::remove_file(&path).map_err(|error| {
-                format!("Could not delete attachment {}: {error}", path.display())
-            })?;
-        }
-    }
-
-    let mut remaining = fs::read_dir(&attachments_dir)
-        .map_err(|error| format!("Could not re-read attachments folder: {error}"))?;
-    if remaining.next().is_none() {
-        fs::remove_dir(&attachments_dir)
-            .map_err(|error| format!("Could not delete empty attachments folder: {error}"))?;
-    }
-
-    Ok(())
 }
 
 #[tauri::command]
