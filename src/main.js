@@ -52,6 +52,17 @@ const calendarTodayButton = document.querySelector("#calendar-today");
 const calendarNextButton = document.querySelector("#calendar-next");
 const appWindow = getCurrentWindow();
 
+let viewportResizeSaveTimer;
+window.addEventListener("resize", () => {
+  window.clearTimeout(viewportResizeSaveTimer);
+  viewportResizeSaveTimer = window.setTimeout(() => {
+    void invoke("note_viewport_logical_size", {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    });
+  }, 400);
+});
+
 let rowHeight = 29;
 const minUiScale = -4;
 const maxUiScale = 8;
@@ -1708,6 +1719,7 @@ function markAppReady() {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       document.documentElement.classList.add("app-ready");
+      void invoke("restore_window_state").catch(() => {});
       if (!loader) {
         return;
       }

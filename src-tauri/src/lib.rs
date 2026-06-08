@@ -15,10 +15,13 @@ use std::{
     io::Cursor,
     path::{Component, Path, PathBuf},
     sync::{Arc, Mutex},
-    time::UNIX_EPOCH,
+    time::{Duration, Instant, UNIX_EPOCH},
 };
 use sublime_fuzzy::FuzzySearch;
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{
+    AppHandle, Emitter, LogicalSize, Manager, PhysicalPosition, Size, State, WebviewWindow,
+    WindowEvent,
+};
 use walkdir::WalkDir;
 
 const SEARCH_TIER_TITLE: i64 = 100_000;
@@ -72,6 +75,21 @@ struct RenameNoteResult {
 
 const DEFAULT_UI_SCALE: i32 = 0;
 const DEFAULT_THEME: &str = "dark";
+const DEFAULT_WINDOW_WIDTH: u32 = 1280;
+const DEFAULT_WINDOW_HEIGHT: u32 = 820;
+const MIN_WINDOW_WIDTH: u32 = 900;
+const MIN_WINDOW_HEIGHT: u32 = 600;
+const WINDOW_VIEWPORT_RESIZE_IGNORE_MS: u64 = 2500;
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct WindowConfig {
+    x: Option<i32>,
+    y: Option<i32>,
+    width: Option<u32>,
+    height: Option<u32>,
+    maximized: Option<bool>,
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -79,6 +97,7 @@ struct AppConfig {
     notes_root: Option<String>,
     ui_scale: Option<i32>,
     theme: Option<String>,
+    window: Option<WindowConfig>,
 }
 
 impl Default for AppConfig {
@@ -87,7 +106,31 @@ impl Default for AppConfig {
             notes_root: None,
             ui_scale: Some(DEFAULT_UI_SCALE),
             theme: Some(DEFAULT_THEME.to_string()),
+            window: None,
         }
+    }
+}
+
+#[derive(Default)]
+struct WindowPersistState {
+    target_logical_size: Mutex<Option<(u32, u32)>>,
+    ignore_viewport_resize_until: Mutex<Option<Instant>>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct WorkArea {
+    x: i32,
+    y: i32,
+    width: u32,
+    height: u32,
+}
+
+impl WorkArea {
+    fn contains_point(self, px: i32, py: i32) -> bool {
+        px >= self.x
+            && py >= self.y
+            && px < self.x + self.width as i32
+            && py < self.y + self.height as i32
     }
 }
 
@@ -887,6 +930,272 @@ fn note_opens_from_search_query(query: &str, note: &NoteMetadata) -> bool {
         .is_some_and(|score| score >= SEARCH_TIER_PATH + SEARCH_LITERAL_CONTAINS)
 }
 
+fn is_wayland_session() -> bool {
+    if std::env::var("XDG_SESSION_TYPE").is_ok_and(|session| session.eq_ignore_ascii_case("wayland"))
+    {
+        return true;
+    }
+
+    std::env::var_os("WAYLAND_DISPLAY").is_some()
+        && !std::env::var("XDG_SESSION_TYPE").is_ok_and(|session| session.eq_ignore_ascii_case("x11"))
+}
+
+fn can_persist_window_position() -> bool {
+    !is_wayland_session()
+}
+
+fn logical_inner_size(window: &WebviewWindow) -> Result<(u32, u32), String> {
+    let physical = window.inner_size().map_err(|error| error.to_string())?;
+    let scale = window.scale_factor().map_err(|error| error.to_string())?;
+    let logical = physical.to_logical::<f64>(scale);
+    Ok((logical.width.round() as u32, logical.height.round() as u32))
+}
+
+fn apply_logical_inner_size(
+    window: &WebviewWindow,
+    width: u32,
+    height: u32,
+) -> Result<(), String> {
+    window
+        .set_size(Size::Logical(LogicalSize::new(width as f64, height as f64)))
+        .map_err(|error| error.to_string())
+}
+
+fn minimum_physical_window_size(scale: f64) -> (u32, u32) {
+    (
+        (MIN_WINDOW_WIDTH as f64 * scale).round() as u32,
+        (MIN_WINDOW_HEIGHT as f64 * scale).round() as u32,
+    )
+}
+
+fn work_area_from_monitor(monitor: &tauri::Monitor) -> WorkArea {
+    let area = monitor.work_area();
+    WorkArea {
+        x: area.position.x,
+        y: area.position.y,
+        width: area.size.width,
+        height: area.size.height,
+    }
+}
+
+fn constrain_window_bounds(
+    x: i32,
+    y: i32,
+    width: u32,
+    height: u32,
+    monitors: &[WorkArea],
+    primary: Option<WorkArea>,
+    min_width: u32,
+    min_height: u32,
+) -> (i32, i32, u32, u32) {
+    if monitors.is_empty() {
+        let width = width
+            .max(min_width)
+            .min(DEFAULT_WINDOW_WIDTH);
+        let height = height
+            .max(min_height)
+            .min(DEFAULT_WINDOW_HEIGHT);
+        return (x, y, width, height);
+    }
+
+    let center_x = x + width as i32 / 2;
+    let center_y = y + height as i32 / 2;
+
+    let monitor = monitors
+        .iter()
+        .copied()
+        .find(|monitor| monitor.contains_point(center_x, center_y))
+        .or_else(|| {
+            monitors
+                .iter()
+                .copied()
+                .find(|monitor| monitor.contains_point(x, y))
+        })
+        .or(primary)
+        .or_else(|| monitors.first().copied())
+        .expect("monitors is not empty");
+
+    let min_width = min_width.min(monitor.width);
+    let min_height = min_height.min(monitor.height);
+    let width = width.clamp(min_width, monitor.width);
+    let height = height.clamp(min_height, monitor.height);
+
+    let max_x = monitor.x + monitor.width as i32 - width as i32;
+    let max_y = monitor.y + monitor.height as i32 - height as i32;
+    let x = x.clamp(monitor.x, max_x.max(monitor.x));
+    let y = y.clamp(monitor.y, max_y.max(monitor.y));
+
+    (x, y, width, height)
+}
+
+fn set_target_logical_size(persist_state: &WindowPersistState, width: u32, height: u32) {
+    if let Ok(mut target) = persist_state.target_logical_size.lock() {
+        *target = Some((width, height));
+    }
+}
+
+fn begin_viewport_resize_ignore(persist_state: &WindowPersistState) {
+    if let Ok(mut ignore_until) = persist_state.ignore_viewport_resize_until.lock() {
+        *ignore_until =
+            Some(Instant::now() + Duration::from_millis(WINDOW_VIEWPORT_RESIZE_IGNORE_MS));
+    }
+}
+
+fn viewport_resize_updates_allowed(persist_state: &WindowPersistState) -> bool {
+    persist_state
+        .ignore_viewport_resize_until
+        .lock()
+        .ok()
+        .and_then(|ignore_until| *ignore_until)
+        .is_none_or(|until| Instant::now() >= until)
+}
+
+fn persisted_logical_size(
+    window: &WebviewWindow,
+    persist_state: &WindowPersistState,
+) -> Result<(u32, u32), String> {
+    if let Ok(target) = persist_state.target_logical_size.lock() {
+        if let Some(size) = *target {
+            return Ok(size);
+        }
+    }
+    logical_inner_size(window)
+}
+
+fn persist_window_state(
+    window: &WebviewWindow,
+    persist_state: &WindowPersistState,
+) -> Result<(), String> {
+    let maximized = window.is_maximized().map_err(|error| error.to_string())?;
+    let mut config = load_config();
+    let window_config = config.window.get_or_insert_with(WindowConfig::default);
+
+    if maximized {
+        window_config.maximized = Some(true);
+    } else {
+        let (width, height) = persisted_logical_size(window, persist_state)?;
+        if can_persist_window_position() {
+            let position = window.outer_position().map_err(|error| error.to_string())?;
+            window_config.x = Some(position.x);
+            window_config.y = Some(position.y);
+        } else {
+            window_config.x = None;
+            window_config.y = None;
+        }
+        window_config.width = Some(width);
+        window_config.height = Some(height);
+        window_config.maximized = Some(false);
+    }
+
+    save_config(&config)
+}
+
+fn restore_window_from_config(
+    window: &WebviewWindow,
+    config: &WindowConfig,
+) -> Result<(u32, u32), String> {
+    let mut width = config
+        .width
+        .ok_or_else(|| "Saved window width is missing.".to_string())?;
+    let mut height = config
+        .height
+        .ok_or_else(|| "Saved window height is missing.".to_string())?;
+    let scale = window.scale_factor().map_err(|error| error.to_string())?;
+    let (min_width, min_height) = minimum_physical_window_size(scale);
+
+    let monitors = window
+        .available_monitors()
+        .map_err(|error| error.to_string())?
+        .iter()
+        .map(work_area_from_monitor)
+        .collect::<Vec<_>>();
+    let primary = window
+        .primary_monitor()
+        .map_err(|error| error.to_string())?
+        .as_ref()
+        .map(work_area_from_monitor);
+
+    let physical_width = (width as f64 * scale).round() as u32;
+    let physical_height = (height as f64 * scale).round() as u32;
+    let (_, _, physical_width, physical_height) = constrain_window_bounds(
+        0,
+        0,
+        physical_width,
+        physical_height,
+        &monitors,
+        primary,
+        min_width,
+        min_height,
+    );
+    width = (physical_width as f64 / scale).round() as u32;
+    height = (physical_height as f64 / scale).round() as u32;
+
+    apply_logical_inner_size(window, width, height)?;
+
+    if can_persist_window_position() {
+        if let (Some(x), Some(y)) = (config.x, config.y) {
+            let (x, y, _, _) = constrain_window_bounds(
+                x,
+                y,
+                physical_width,
+                physical_height,
+                &monitors,
+                primary,
+                min_width,
+                min_height,
+            );
+            window
+                .set_position(PhysicalPosition::new(x, y))
+                .map_err(|error| error.to_string())?;
+        }
+    }
+
+    if config.maximized.unwrap_or(false) {
+        window.maximize().map_err(|error| error.to_string())?;
+    }
+
+    Ok((width, height))
+}
+
+#[tauri::command]
+fn note_viewport_logical_size(
+    app: AppHandle,
+    width: u32,
+    height: u32,
+) -> Result<(), String> {
+    if width == 0 || height == 0 {
+        return Ok(());
+    }
+
+    let persist_state = app.state::<WindowPersistState>();
+    if !viewport_resize_updates_allowed(persist_state.inner()) {
+        return Ok(());
+    }
+
+    set_target_logical_size(persist_state.inner(), width, height);
+    Ok(())
+}
+
+#[tauri::command]
+fn restore_window_state(app: AppHandle) -> Result<(), String> {
+    let config = load_config();
+    let Some(window_config) = config.window else {
+        return Ok(());
+    };
+    if window_config.width.is_none() || window_config.height.is_none() {
+        return Ok(());
+    }
+
+    let window = app
+        .get_webview_window("main")
+        .ok_or_else(|| "Main window is not available.".to_string())?;
+    let (width, height) = restore_window_from_config(&window, &window_config)?;
+    let persist_state = app.state::<WindowPersistState>();
+    set_target_logical_size(persist_state.inner(), width, height);
+    begin_viewport_resize_ignore(persist_state.inner());
+    Ok(())
+}
+
 const CONFIG_DIR_NAME: &str = "echo";
 
 fn config_path() -> Result<PathBuf, String> {
@@ -1053,18 +1362,155 @@ mod quick_note_tests {
     }
 }
 
+#[cfg(test)]
+mod window_tests {
+    use super::*;
+
+    const MONITOR: WorkArea = WorkArea {
+        x: 0,
+        y: 0,
+        width: 1920,
+        height: 1080,
+    };
+
+    #[test]
+    fn window_fully_on_monitor_is_unchanged() {
+        let (x, y, width, height) = constrain_window_bounds(
+            100,
+            100,
+            1280,
+            820,
+            &[MONITOR],
+            Some(MONITOR),
+            MIN_WINDOW_WIDTH,
+            MIN_WINDOW_HEIGHT,
+        );
+        assert_eq!((x, y, width, height), (100, 100, 1280, 820));
+    }
+
+    #[test]
+    fn window_partially_off_screen_is_clamped() {
+        let (x, y, width, height) = constrain_window_bounds(
+            -50,
+            -30,
+            1280,
+            820,
+            &[MONITOR],
+            Some(MONITOR),
+            MIN_WINDOW_WIDTH,
+            MIN_WINDOW_HEIGHT,
+        );
+        assert_eq!((x, y, width, height), (0, 0, 1280, 820));
+    }
+
+    #[test]
+    fn oversized_window_is_shrunk_to_monitor() {
+        let small = WorkArea {
+            x: 0,
+            y: 0,
+            width: 1024,
+            height: 768,
+        };
+        let (_, _, width, height) = constrain_window_bounds(
+            0,
+            0,
+            2000,
+            1500,
+            &[small],
+            Some(small),
+            MIN_WINDOW_WIDTH,
+            MIN_WINDOW_HEIGHT,
+        );
+        assert_eq!((width, height), (1024, 768));
+    }
+
+    #[test]
+    fn disconnected_monitor_position_moves_to_primary() {
+        let (x, y, width, height) = constrain_window_bounds(
+            2500,
+            100,
+            1280,
+            820,
+            &[MONITOR],
+            Some(MONITOR),
+            MIN_WINDOW_WIDTH,
+            MIN_WINDOW_HEIGHT,
+        );
+        assert_eq!((width, height), (1280, 820));
+        assert!(x >= MONITOR.x);
+        assert!(y >= MONITOR.y);
+        assert!(x + width as i32 <= MONITOR.x + MONITOR.width as i32);
+        assert!(y + height as i32 <= MONITOR.y + MONITOR.height as i32);
+    }
+
+    #[test]
+    fn undersized_window_is_raised_to_minimum() {
+        let (_, _, width, height) = constrain_window_bounds(
+            0,
+            0,
+            400,
+            300,
+            &[MONITOR],
+            Some(MONITOR),
+            MIN_WINDOW_WIDTH,
+            MIN_WINDOW_HEIGHT,
+        );
+        assert_eq!((width, height), (MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT));
+    }
+
+    #[test]
+    fn window_config_serializes_as_nested_camel_case_object() {
+        let config = AppConfig {
+            notes_root: Some("/tmp/notes".to_string()),
+            ui_scale: Some(0),
+            theme: Some("dark".to_string()),
+            window: Some(WindowConfig {
+                x: Some(120),
+                y: Some(80),
+                width: Some(1280),
+                height: Some(820),
+                maximized: Some(false),
+            }),
+        };
+        let json = serde_json::to_string(&config).expect("serialize config");
+        assert!(json.contains(r#""window":{"x":120,"y":80,"width":1280,"height":820,"maximized":false}"#));
+        let restored: AppConfig = serde_json::from_str(&json).expect("deserialize config");
+        assert_eq!(restored.window.and_then(|window| window.width), Some(1280));
+    }
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState::default())
+        .manage(WindowPersistState::default())
         .setup(|app| {
             let state = app.state::<AppState>();
-            if let Some(root) = load_config().notes_root {
+            let config = load_config();
+            if let Some(root) = config.notes_root {
                 if let Err(error) = state.configure_root(PathBuf::from(root), app.handle()) {
                     eprintln!("Could not restore notes root: {error}");
                 }
             }
+
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if window.label() != "main" {
+                return;
+            }
+
+            if !matches!(event, WindowEvent::CloseRequested { .. }) {
+                return;
+            }
+
+            let app = window.app_handle();
+            let persist_state = app.state::<WindowPersistState>();
+            if let Some(webview_window) = app.get_webview_window("main") {
+                if let Err(error) = persist_window_state(&webview_window, persist_state.inner()) {
+                    eprintln!("Could not save window state: {error}");
+                }
+            }
         })
         .invoke_handler(tauri::generate_handler![
             get_notes,
@@ -1072,6 +1518,8 @@ pub fn run() {
             get_app_config,
             save_ui_scale,
             save_theme,
+            restore_window_state,
+            note_viewport_logical_size,
             search_notes,
             open_note,
             save_note,
