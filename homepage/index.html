@@ -520,6 +520,104 @@
       border-radius: var(--radius);
       border: 1px solid var(--border);
       background: var(--bg-card);
+      transition: border-color 0.2s;
+    }
+
+    .gallery-item:has(.gallery-media):hover {
+      border-color: var(--muted);
+    }
+
+    .gallery-media {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      overflow: hidden;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      background: var(--bg-subtle);
+      cursor: zoom-in;
+      font: inherit;
+      color: inherit;
+      transition: opacity 0.2s;
+    }
+
+    .gallery-media:hover {
+      opacity: 0.92;
+    }
+
+    .gallery-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      display: block;
+      pointer-events: none;
+    }
+
+    .hero-shot {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      overflow: hidden;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg-subtle);
+      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6);
+    }
+
+    .hero-shot img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      display: block;
+    }
+
+    /* ── LIGHTBOX ── */
+    .lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.92);
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .lightbox.active {
+      display: flex;
+    }
+
+    .lightbox img {
+      max-width: min(96vw, 1400px);
+      max-height: 90vh;
+      width: auto;
+      height: auto;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.8);
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--muted);
+      transition: color 0.2s;
+    }
+
+    .lightbox-close:hover {
+      color: var(--text);
     }
 
     .gallery-item:nth-child(1) { grid-column: 1 / 8; }
@@ -952,7 +1050,7 @@
     <div class="screenshots-header">
       <p class="section-label">Screenshots</p>
       <h2 class="section-title">See it in action.</h2>
-      <p class="section-sub">Screenshots coming soon — placeholders show the assets we need for v0.1.3.</p>
+      <p class="section-sub">Click any screenshot to zoom in.</p>
     </div>
     <div class="gallery">
       <div class="gallery-item">
@@ -970,45 +1068,39 @@
         <div class="gallery-caption">All themes</div>
       </div>
       <div class="gallery-item">
-        <div class="media-placeholder media-placeholder--gallery" role="img" aria-label="Focus mode placeholder">
-          <span class="media-placeholder-file">screenshots/focus-mode.png</span>
-          <span class="media-placeholder-size">1280 × 820</span>
-        </div>
+        <button type="button" class="gallery-media" data-lightbox-src="screenshots/focus-mode.png" data-lightbox-alt="Focus mode" aria-label="View Focus mode screenshot">
+          <img src="screenshots/focus-mode.png" alt="" loading="lazy" />
+        </button>
         <div class="gallery-caption">Focus mode</div>
       </div>
       <div class="gallery-item">
-        <div class="media-placeholder media-placeholder--gallery" role="img" aria-label="Quick note placeholder">
-          <span class="media-placeholder-file">screenshots/quick-note.png</span>
-          <span class="media-placeholder-size">1280 × 820</span>
-        </div>
+        <button type="button" class="gallery-media" data-lightbox-src="screenshots/quick-note.png" data-lightbox-alt="Quick note" aria-label="View Quick note screenshot">
+          <img src="screenshots/quick-note.png" alt="" loading="lazy" />
+        </button>
         <div class="gallery-caption">Quick note</div>
       </div>
       <div class="gallery-item">
-        <div class="media-placeholder media-placeholder--gallery" role="img" aria-label="Find in note placeholder">
-          <span class="media-placeholder-file">screenshots/find-in-note.png</span>
-          <span class="media-placeholder-size">1280 × 820</span>
-        </div>
+        <button type="button" class="gallery-media" data-lightbox-src="screenshots/find-in-note.png" data-lightbox-alt="Find in note" aria-label="View Find in note screenshot">
+          <img src="screenshots/find-in-note.png" alt="" loading="lazy" />
+        </button>
         <div class="gallery-caption">Find in note</div>
       </div>
       <div class="gallery-item">
-        <div class="media-placeholder media-placeholder--gallery" role="img" aria-label="Fuzzy search placeholder">
-          <span class="media-placeholder-file">screenshots/fuzzy-search.png</span>
-          <span class="media-placeholder-size">1280 × 820</span>
-        </div>
+        <button type="button" class="gallery-media" data-lightbox-src="screenshots/fuzzy-search.png" data-lightbox-alt="Fuzzy search" aria-label="View Fuzzy search screenshot">
+          <img src="screenshots/fuzzy-search.png" alt="" loading="lazy" />
+        </button>
         <div class="gallery-caption">Fuzzy search</div>
       </div>
       <div class="gallery-item">
-        <div class="media-placeholder media-placeholder--gallery" role="img" aria-label="Keyboard shortcuts placeholder">
-          <span class="media-placeholder-file">screenshots/keyboard-shortcuts.png</span>
-          <span class="media-placeholder-size">1280 × 820</span>
-        </div>
+        <button type="button" class="gallery-media" data-lightbox-src="screenshots/keyboard-shortcuts.png" data-lightbox-alt="Keyboard shortcuts" aria-label="View Keyboard shortcuts screenshot">
+          <img src="screenshots/keyboard-shortcuts.png" alt="" loading="lazy" />
+        </button>
         <div class="gallery-caption">Keyboard shortcuts</div>
       </div>
       <div class="gallery-item">
-        <div class="media-placeholder media-placeholder--gallery" role="img" aria-label="Markdown syntax placeholder">
-          <span class="media-placeholder-file">screenshots/markdown-syntax.png</span>
-          <span class="media-placeholder-size">1280 × 820</span>
-        </div>
+        <button type="button" class="gallery-media" data-lightbox-src="screenshots/markdown-syntax.png" data-lightbox-alt="Markdown reference" aria-label="View Markdown reference screenshot">
+          <img src="screenshots/markdown-syntax.png" alt="" loading="lazy" />
+        </button>
         <div class="gallery-caption">Markdown reference</div>
       </div>
     </div>
@@ -1104,6 +1196,52 @@
     </div>
   </div>
 </footer>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot preview">
+  <button type="button" class="lightbox-close" id="lightbox-close" aria-label="Close">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <img id="lightbox-img" src="" alt="" />
+</div>
+
+<script>
+  const lightbox = document.getElementById("lightbox");
+  const lightboxImg = document.getElementById("lightbox-img");
+  const lightboxClose = document.getElementById("lightbox-close");
+
+  function openLightbox(src, alt) {
+    lightboxImg.src = src;
+    lightboxImg.alt = alt;
+    lightbox.classList.add("active");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeLightbox() {
+    lightbox.classList.remove("active");
+    lightboxImg.src = "";
+    document.body.style.overflow = "";
+  }
+
+  document.querySelectorAll(".gallery-media[data-lightbox-src]").forEach((button) => {
+    button.addEventListener("click", () => {
+      openLightbox(button.dataset.lightboxSrc, button.dataset.lightboxAlt || "");
+    });
+  });
+
+  lightboxClose.addEventListener("click", closeLightbox);
+
+  lightbox.addEventListener("click", (event) => {
+    if (event.target === lightbox) {
+      closeLightbox();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && lightbox.classList.contains("active")) {
+      closeLightbox();
+    }
+  });
+</script>
 
 </body>
 </html>
