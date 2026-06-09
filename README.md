@@ -6,36 +6,47 @@ Built for focus. Designed for flow.
 
 Echo gets out of your way so you can think clearly and do your **real work**.
 
-![Echo Main View](homepage/screenshots/echo.png)
+![Echo Main View](homepage/screenshots/hero-main.png)
 
 ## Features
 
-- ⚡ Extremely fast startup and search
+- ⚡ Blazing fast startup and search (Rust + Tauri)
 - 📝 Clean Markdown editing with live preview
-- 🔎 Instant fuzzy search as you type
-- 🌓 Beautiful dark and light themes (plus additional color themes)
-- 🪟 Powerful focus mode for deep work
-- 📁 Works with plain Markdown files in any folder
-- ⌨️ Excellent keyboard-first experience
+- 🔎 Improved fuzzy search — typo-tolerant matching across titles, paths, and content
+- ⚡ Quick notes with `Ctrl/Cmd+Q` — timestamped note in one keystroke
+- 🔍 Find in note with `Ctrl/Cmd+F` — search inside the open editor
+- 📅 Daily notes with built-in calendar and `Ctrl/Cmd+D`
+- 🪟 Focus mode (`Ctrl/Cmd+.`) for a distraction-free full-screen canvas
+- 🎨 **10 color themes** — dark, light, solarized, hacker, orange-hacker, plus five retro terminal themes (`vga-437`, `vga-blue`, `speccy`, `vt`, `mf-3270`)
+- 📁 Plain `.md` files in any folder — no database, no lock-in
+- ⌨️ Keyboard-first workflow (`Ctrl/Cmd+K` for shortcuts)
 - 🌍 Cross-platform (Windows, macOS, Linux)
-- 📦 Extremely lightweight and fast
 
 ## Screenshots
 
-**Main Interface**  
-![Main Interface](homepage/screenshots/echo.png)
+**Main workspace**  
+![Main workspace](homepage/screenshots/hero-main.png)
 
-**All Color Themes**  
-![Themes](homepage/screenshots/themes.png)
+**All themes**  
+![All themes](homepage/screenshots/themes-grid.png)
 
-**Focus Mode**  
-![Focus Mode](homepage/screenshots/focus-green.png)
+**Focus mode**  
+![Focus mode](homepage/screenshots/focus-mode.png)
 
-**Keyboard Shortcuts**  
-![Keyboard Shortcuts](homepage/screenshots/keyboard-shortcuts.png)
+**Quick note**  
+![Quick note](homepage/screenshots/quick-note.png)
 
-**Markdown Syntax Help**  
-![Markdown Syntax](homepage/screenshots/markdown-syntax.png)
+**Find in note**  
+![Find in note](homepage/screenshots/find-in-note.png)
+
+**Fuzzy search**  
+![Fuzzy search](homepage/screenshots/fuzzy-search.png)
+
+**Keyboard shortcuts**  
+![Keyboard shortcuts](homepage/screenshots/keyboard-shortcuts.png)
+
+**Markdown syntax help**  
+![Markdown syntax](homepage/screenshots/markdown-syntax.png)
 
 ## Download
 

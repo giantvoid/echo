@@ -555,6 +555,10 @@
       pointer-events: none;
     }
 
+    .gallery-media--wide {
+      aspect-ratio: 16 / 9;
+    }
+
     .hero-shot {
       width: 100%;
       aspect-ratio: 16 / 10;
@@ -849,10 +853,8 @@
         </div>
       </div>
       <div class="hero-image">
-        <div class="media-placeholder media-placeholder--hero" role="img" aria-label="Screenshot placeholder: main workspace">
-          <span class="media-placeholder-label">Placeholder</span>
-          <span class="media-placeholder-file">screenshots/hero-main.png</span>
-          <span class="media-placeholder-size">1280 × 820 px</span>
+        <div class="hero-shot">
+          <img src="screenshots/hero-main.png" alt="Echo main workspace with note list, calendar, and Markdown editor" width="1280" height="820" />
         </div>
       </div>
     </div>
@@ -1001,11 +1003,9 @@
       Cycle with <kbd>Ctrl/Cmd+T</kbd>.
     </p>
 
-    <div class="media-placeholder media-placeholder--wide" role="img" aria-label="Screenshot placeholder: all themes">
-      <span class="media-placeholder-label">Placeholder</span>
-      <span class="media-placeholder-file">screenshots/themes-grid.png</span>
-      <span class="media-placeholder-size">1920 × 1080 px recommended</span>
-    </div>
+    <button type="button" class="gallery-media gallery-media--wide" data-lightbox-src="screenshots/themes-grid.png" data-lightbox-alt="All themes" aria-label="View all themes screenshot" style="margin-top: 2rem;">
+      <img src="screenshots/themes-grid.png" alt="" loading="lazy" />
+    </button>
   </div>
 </section>
 
@@ -1054,17 +1054,15 @@
     </div>
     <div class="gallery">
       <div class="gallery-item">
-        <div class="media-placeholder media-placeholder--gallery" role="img" aria-label="Main workspace placeholder">
-          <span class="media-placeholder-file">screenshots/hero-main.png</span>
-          <span class="media-placeholder-size">1280 × 820</span>
-        </div>
+        <button type="button" class="gallery-media" data-lightbox-src="screenshots/hero-main.png" data-lightbox-alt="Main workspace" aria-label="View Main workspace screenshot">
+          <img src="screenshots/hero-main.png" alt="" loading="lazy" />
+        </button>
         <div class="gallery-caption">Main workspace</div>
       </div>
       <div class="gallery-item">
-        <div class="media-placeholder media-placeholder--gallery" role="img" aria-label="All themes placeholder">
-          <span class="media-placeholder-file">screenshots/themes-grid.png</span>
-          <span class="media-placeholder-size">1920 × 1080</span>
-        </div>
+        <button type="button" class="gallery-media gallery-media--wide" data-lightbox-src="screenshots/themes-grid.png" data-lightbox-alt="All themes" aria-label="View All themes screenshot">
+          <img src="screenshots/themes-grid.png" alt="" loading="lazy" />
+        </button>
         <div class="gallery-caption">All themes</div>
       </div>
       <div class="gallery-item">
